@@ -24,7 +24,12 @@ const STARTERS = (
   require(join(API, 'devportal/docs/docs-catalog')) as {
     STARTER_TEMPLATES: readonly {
       id: string;
-      upload: { language: 'ts' | 'python'; source: string; entrypoint: string };
+      upload: {
+        language: 'ts' | 'python';
+        source: string;
+        entrypoint: string;
+        sdkPermissions: readonly string[];
+      };
       tests: readonly { input: unknown; expect: unknown }[];
     }[];
   }
@@ -56,20 +61,26 @@ describe('local runs', () => {
   const noSdk = { url: 'http://127.0.0.1:9/sdk', token: 't' };
 
   it('every TypeScript starter passes its own tests locally', async () => {
+    // CLC-209 — each starter is granted ONLY its own declared sdkPermissions (never a blanket grant),
+    // so a starter that calls an SDK it did not declare is refused here as on the platform.
     const calls: LocalCall[] = [];
-    const sdk = await serveLocalSdk(localDevPorts(REF, [], { 'observability.log': null }, calls));
-    try {
-      for (const s of STARTERS.filter((x) => x.upload.language === 'ts')) {
+    const fixtures = { 'observability.log': null, 'event.emit': null };
+    for (const s of STARTERS.filter((x) => x.upload.language === 'ts')) {
+      const sdk = await serveLocalSdk(localDevPorts(REF, s.upload.sdkPermissions, fixtures, calls));
+      try {
         for (const t of s.tests) {
           const r = await runLocally(s.upload, t.input, sdk, { timeoutMs: 20_000 });
           expect([s.id, r]).toMatchObject([s.id, { ok: true, output: t.expect }]);
         }
+      } finally {
+        await sdk.close();
       }
-    } finally {
-      await sdk.close();
     }
-    // The webhook starter logged through the SDK: answered locally, recorded.
-    expect(calls.map((c) => [c.call, c.answer.ok])).toEqual([['observability.log', true]]);
+    // The webhook starter logged and the order-tagged starter emitted through the SDK: answered locally, recorded.
+    expect(calls.map((c) => [c.call, c.answer.ok]).sort()).toEqual([
+      ['event.emit', true],
+      ['observability.log', true],
+    ]);
   }, 60_000);
 
   (hasPython() ? it : it.skip)(
