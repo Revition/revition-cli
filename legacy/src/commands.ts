@@ -20,6 +20,7 @@ import {
   ApiClient,
   ApiError,
   DEFAULT_API_URL,
+  type PipelineResult,
   type ProjectCapability,
   type ProjectCheck,
   type ProjectFiles,
@@ -36,7 +37,13 @@ export interface CliIo {
   readonly err: (line: string) => void;
   /** Injected in tests; the real CLI uses the global fetch. */
   readonly fetch?: typeof fetch;
+  /** Injected in tests; the real CLI waits for real (the background pipeline poll). */
+  readonly sleep?: (ms: number) => Promise<void>;
 }
+
+/** F5 (R396): a background pipeline is read again at the web panel's cadence, up to the routes lambda's timeout. */
+export const PIPELINE_POLL_MS = 3_000;
+export const PIPELINE_WAIT_MS = 15 * 60_000;
 
 export const USAGE = [
   'usage: revition <command>',
@@ -226,12 +233,41 @@ async function evaluate(
     io.out('Nothing ran. Re-run with --yes to run the pipeline against this quote.');
     return 0;
   }
-  const r = await api.runPipeline(agent, branch, quote.quoteId);
+  const ran = await api.runPipeline(agent, branch, quote.quoteId);
+  const r = 'artifactRef' in ran ? ran : await awaitBackgroundPipeline(io, api, agent, branch);
+  if (r === null) {
+    io.err(`the pipeline is still running after ${PIPELINE_WAIT_MS / 60_000} min; re-read the branch later`);
+    return 1;
+  }
   for (const s of r.stages) {
     io.out(`${s.stage}: ${s.status}${s.detail === '' ? '' : ` (${s.detail})`}`);
   }
-  io.out(r.artifactRef === null ? 'not promoted' : `promoted to test as ${r.artifactRef}`);
-  return r.artifactRef === null ? 1 : 0;
+  // F5 (R396): only a real ref is a promotion; a missing one is never reported as success.
+  const promoted = typeof r.artifactRef === 'string' && r.artifactRef !== '';
+  io.out(promoted ? `promoted to test as ${r.artifactRef}` : 'not promoted');
+  return promoted ? 0 : 1;
+}
+
+/**
+ * F5 (R396): a 202 means the platform runs the pipeline in the background and writes its stages and end on the
+ * branch (pipeline.ts record). Read the branch again until no stage is running; null when the wait runs out.
+ */
+async function awaitBackgroundPipeline(
+  io: CliIo,
+  api: ApiClient,
+  agent: string,
+  branchId: string
+): Promise<PipelineResult | null> {
+  const sleep = io.sleep ?? ((ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)));
+  for (let waited = 0; waited <= PIPELINE_WAIT_MS; waited += PIPELINE_POLL_MS) {
+    await sleep(PIPELINE_POLL_MS);
+    const b = (await api.codeBranches(agent)).find((x) => x.branchId === branchId);
+    const stages = b?.pipeline ?? [];
+    if (b !== undefined && stages.length > 0 && !stages.some((s) => s.status === 'running')) {
+      return { artifactRef: b.artifactRef ?? null, stages };
+    }
+  }
+  return null;
 }
 
 /** Run one command. Returns the process exit code; every failure is a message, never a stack. */

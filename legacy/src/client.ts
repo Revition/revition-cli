@@ -77,13 +77,33 @@ export interface PipelineQuote {
   readonly limits: Readonly<Record<string, number>>;
 }
 
+export interface PipelineStage {
+  readonly stage: string;
+  readonly status: string;
+  readonly detail: string;
+}
+
 export interface PipelineResult {
   readonly artifactRef: string | null;
-  readonly stages: readonly {
-    readonly stage: string;
-    readonly status: string;
-    readonly detail: string;
-  }[];
+  readonly stages: readonly PipelineStage[];
+}
+
+/**
+ * F5 (R396): a deployed platform runs the pipeline in the background and answers 202 with this
+ * (foundry-routes-handler runPipeline); the finished run is then read from the branch.
+ */
+export interface PipelineAccepted {
+  readonly status: 'running';
+  readonly branchId: string;
+  readonly stages: readonly PipelineStage[];
+}
+
+/** One branch as GET .../code-branches answers it: the fields `eval` reads after a background run. */
+export interface BranchView {
+  readonly branchId: string;
+  readonly status: string;
+  readonly pipeline?: readonly PipelineStage[];
+  readonly artifactRef?: string | null;
 }
 
 export interface ClientOptions {
@@ -159,11 +179,24 @@ export class ApiClient {
     );
   }
 
-  runPipeline(agentId: string, branchId: string, quoteId: string): Promise<PipelineResult> {
+  runPipeline(
+    agentId: string,
+    branchId: string,
+    quoteId: string
+  ): Promise<PipelineResult | PipelineAccepted> {
     return this.request(
       'POST',
       `/deployments/${seg(agentId)}/code-branches/${seg(branchId)}/pipeline`,
       { quoteId }
     );
+  }
+
+  /** F5 (R396): the agent's branches, where a background pipeline writes its stages and its end. */
+  async codeBranches(agentId: string): Promise<readonly BranchView[]> {
+    const r = await this.request<{ readonly branches?: readonly BranchView[] }>(
+      'GET',
+      `/deployments/${seg(agentId)}/code-branches`
+    );
+    return r.branches ?? [];
   }
 }

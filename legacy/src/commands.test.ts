@@ -42,11 +42,21 @@ interface Sent {
   readonly auth: string | null;
 }
 
-function fakeApi(opts: { artifactRef?: string | null } = {}): {
+/** F5 (R396): one read of the branch list after a background pipeline was accepted. */
+interface BranchRead {
+  readonly status: string;
+  readonly pipeline: readonly { stage: string; status: string; detail: string }[];
+  readonly artifactRef?: string | null;
+}
+
+function fakeApi(
+  opts: { artifactRef?: string | null; background?: readonly BranchRead[] } = {}
+): {
   fetch: typeof fetch;
   sent: Sent[];
 } {
   const sent: Sent[] = [];
+  let reads = 0;
   const devDeps = {
     identity: { kv: new InMemoryFoundryKv(), nowMs: (): number => Date.parse('2026-09-30T00:00:00.000Z') },
     credits: funded('github|dev-1'),
@@ -91,6 +101,19 @@ function fakeApi(opts: { artifactRef?: string | null } = {}): {
     }
     if (path === '/deployments/agt_1/code-branches/cb_0001/pipeline-quote') {
       return json(200, { quoteId: 'q_1', sandboxRuns: 1, limits: { cpuMs: 8000 } });
+    }
+    if (path === '/deployments/agt_1/code-branches/cb_0001/pipeline' && opts.background !== undefined) {
+      // The deployed platform (foundry-routes-handler runPipeline, pipelineInBackground wired): 202, no artifactRef.
+      return json(202, {
+        status: 'running',
+        branchId: 'cb_0001',
+        stages: [{ stage: 'build', status: 'running', detail: '' }],
+      });
+    }
+    if (method === 'GET' && path === '/deployments/agt_1/code-branches' && opts.background !== undefined) {
+      const read = opts.background[Math.min(reads, opts.background.length - 1)]!;
+      reads += 1;
+      return json(200, { branches: [{ branchId: 'cb_0001', branch: 'cli/hello-tool-1', ...read }] });
     }
     if (path === '/deployments/agt_1/code-branches/cb_0001/pipeline') {
       return json(200, {
@@ -292,6 +315,60 @@ describe('deploy and eval: a branch for review, then the one pipeline', () => {
     ).toBe(1);
     expect(await runCli(['eval', '--agent', 'agt_1'], io(root, api.fetch).cli)).toBe(2);
   });
+
+  // F5 (R396): a deployed platform answers the run with 202 and writes the end on the branch.
+  const RUNNING: BranchRead = {
+    status: 'approved',
+    pipeline: [
+      { stage: 'build', status: 'passed', detail: 'code://hello-tool/1@sha256:x' },
+      { stage: 'tests', status: 'running', detail: '' },
+    ],
+  };
+  const PROMOTED: BranchRead = {
+    status: 'promoted',
+    artifactRef: 'artifact://agt_1/test/1',
+    pipeline: [
+      { stage: 'build', status: 'passed', detail: 'code://hello-tool/1@sha256:x' },
+      { stage: 'tests', status: 'passed', detail: '1 passed in the sandbox' },
+    ],
+  };
+  const noWait = (): Promise<void> => Promise.resolve();
+
+  it('a 202 background run: eval reads the branch until no stage runs, then prints the 200 lines', async () => {
+    const api = fakeApi({ background: [RUNNING, PROMOTED] });
+    const y = io(root, api.fetch);
+    const code = await runCli(['eval', '--agent', 'agt_1', '--branch', 'cb_0001', '--yes'], {
+      ...y.cli,
+      sleep: noWait,
+    });
+    expect(y.err).toEqual([]);
+    expect(code).toBe(0);
+    expect(y.out.slice(1)).toEqual([
+      'build: passed (code://hello-tool/1@sha256:x)',
+      'tests: passed (1 passed in the sandbox)',
+      'promoted to test as artifact://agt_1/test/1',
+    ]);
+    expect(api.sent.filter((s) => s.method === 'GET' && s.path === '/deployments/agt_1/code-branches')).toHaveLength(2);
+  });
+
+  it('a 202 run that ends blocked, or never ends within the wait, is never a success', async () => {
+    const blocked = fakeApi({
+      background: [
+        { status: 'blocked', artifactRef: null, pipeline: [{ stage: 'tests', status: 'failed', detail: 'x' }] },
+      ],
+    });
+    const b = io(root, blocked.fetch);
+    expect(
+      await runCli(['eval', '--agent', 'agt_1', '--branch', 'cb_0001', '--yes'], { ...b.cli, sleep: noWait })
+    ).toBe(1);
+    expect(b.out.at(-1)).toBe('not promoted');
+    const stuck = fakeApi({ background: [RUNNING] });
+    const s = io(root, stuck.fetch);
+    expect(
+      await runCli(['eval', '--agent', 'agt_1', '--branch', 'cb_0001', '--yes'], { ...s.cli, sleep: noWait })
+    ).toBe(1);
+    expect(s.err).toEqual(['the pipeline is still running after 15 min; re-read the branch later']);
+  });
 });
 
 describe('usage and credentials', () => {
@@ -319,6 +396,8 @@ describe('AC3 — the CLI has no road around the branch, the review or the pipel
     const client = readFileSync(join(__dirname, 'client.ts'), 'utf8');
     expect([...client.matchAll(/`(\/(?:dev|deployments)[^`]*)`/g)].map((m) => m[1]).sort()).toEqual(
       [
+        // POST proposes the branch; GET (F5, R396) reads a background pipeline's end. Both are the one branch route.
+        '/deployments/${seg(agentId)}/code-branches',
         '/deployments/${seg(agentId)}/code-branches',
         '/deployments/${seg(agentId)}/code-branches/${seg(branchId)}/pipeline',
         '/deployments/${seg(agentId)}/code-branches/${seg(branchId)}/pipeline-quote',
