@@ -50,7 +50,12 @@ interface BranchRead {
 }
 
 function fakeApi(
-  opts: { artifactRef?: string | null; background?: readonly BranchRead[] } = {}
+  opts: {
+    artifactRef?: string | null;
+    background?: readonly BranchRead[];
+    /** The 200 run's evaluation stage (pipeline.ts promotionStages); default passed. */
+    evaluation?: { readonly status: string; readonly detail: string };
+  } = {}
 ): {
   fetch: typeof fetch;
   sent: Sent[];
@@ -121,6 +126,10 @@ function fakeApi(
         stages: [
           { stage: 'build', status: 'passed', detail: 'code://hello-tool/1@sha256:x' },
           { stage: 'tests', status: 'passed', detail: '1 passed in the sandbox' },
+          {
+            stage: 'evaluation',
+            ...(opts.evaluation ?? { status: 'passed', detail: "the agent's tests and verification passed" }),
+          },
         ],
       });
     }
@@ -304,6 +313,7 @@ describe('deploy and eval: a branch for review, then the one pipeline', () => {
     expect(y.out.slice(1)).toEqual([
       'build: passed (code://hello-tool/1@sha256:x)',
       'tests: passed (1 passed in the sandbox)',
+      "evaluation: passed (the agent's tests and verification passed)",
       'promoted to test as artifact://agt_1/test/1',
     ]);
     const blocked = fakeApi({ artifactRef: null });
@@ -349,6 +359,36 @@ describe('deploy and eval: a branch for review, then the one pipeline', () => {
       'promoted to test as artifact://agt_1/test/1',
     ]);
     expect(api.sent.filter((s) => s.method === 'GET' && s.path === '/deployments/agt_1/code-branches')).toHaveLength(2);
+  });
+
+  // F5 (R396, build c9ea7f24): a run whose evaluation failed still FREEZES an artifact (artifactRef is set,
+  // pipeline.ts:84-85), so a ref alone is never a promotion.
+  it('a 200 run whose evaluation failed is frozen, not promoted: exit 1 with the reason', async () => {
+    const api = fakeApi({ evaluation: { status: 'failed', detail: 'failing tests' } });
+    const y = io(root, api.fetch);
+    expect(await runCli(['eval', '--agent', 'agt_1', '--branch', 'cb_0001', '--yes'], y.cli)).toBe(1);
+    expect(y.out.at(-1)).toBe('frozen as artifact://agt_1/test/1; not promoted: failing tests');
+    expect(y.out.join('\n')).not.toContain('promoted to test as');
+  });
+
+  it('a 202 run whose branch ends built (frozen, evaluation failed) is not promoted: exit 1', async () => {
+    const built: BranchRead = {
+      status: 'built',
+      artifactRef: 'envart://agt_1@sha256:f',
+      pipeline: [
+        { stage: 'build', status: 'passed', detail: 'code://hello-tool/2@sha256:x' },
+        { stage: 'tests', status: 'passed', detail: '1 passed in the sandbox' },
+        { stage: 'evaluation', status: 'failed', detail: 'failing tests' },
+      ],
+    };
+    const api = fakeApi({ background: [built] });
+    const y = io(root, api.fetch);
+    const code = await runCli(['eval', '--agent', 'agt_1', '--branch', 'cb_0001', '--yes'], {
+      ...y.cli,
+      sleep: noWait,
+    });
+    expect(code).toBe(1);
+    expect(y.out.at(-1)).toBe('frozen as envart://agt_1@sha256:f; not promoted: failing tests');
   });
 
   it('a 202 run that ends blocked, or never ends within the wait, is never a success', async () => {

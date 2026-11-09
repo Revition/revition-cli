@@ -234,7 +234,10 @@ async function evaluate(
     return 0;
   }
   const ran = await api.runPipeline(agent, branch, quote.quoteId);
-  const r = 'artifactRef' in ran ? ran : await awaitBackgroundPipeline(io, api, agent, branch);
+  const r =
+    'artifactRef' in ran
+      ? { ...ran, promoted: evaluationPassed(ran.stages) }
+      : await awaitBackgroundPipeline(io, api, agent, branch);
   if (r === null) {
     io.err(`the pipeline is still running after ${PIPELINE_WAIT_MS / 60_000} min; re-read the branch later`);
     return 1;
@@ -242,10 +245,37 @@ async function evaluate(
   for (const s of r.stages) {
     io.out(`${s.stage}: ${s.status}${s.detail === '' ? '' : ` (${s.detail})`}`);
   }
-  // F5 (R396): only a real ref is a promotion; a missing one is never reported as success.
-  const promoted = typeof r.artifactRef === 'string' && r.artifactRef !== '';
-  io.out(promoted ? `promoted to test as ${r.artifactRef}` : 'not promoted');
-  return promoted ? 0 : 1;
+  io.out(pipelineEndLine(r));
+  return promotedRef(r) !== null ? 0 : 1;
+}
+
+/** A pipeline's end as `eval` reads it: its stages, the artifact it froze, and whether it was promoted. */
+interface PipelineEnd extends PipelineResult {
+  readonly promoted: boolean;
+}
+
+/**
+ * F5 (R396): a run is PROMOTED only when its evaluation stage passed. `artifactRef` alone is not a promotion: it is
+ * "the immutable artifact frozen out of dev" and is set on an evaluation failure too (pipeline.ts:84-85, :652-657).
+ */
+function evaluationPassed(stages: PipelineResult['stages']): boolean {
+  return stages.some((s) => s.stage === 'evaluation' && s.status === 'passed');
+}
+
+/** The promoted artifact: a real ref AND a promotion; null otherwise. The one success rule of `eval`. */
+function promotedRef(r: PipelineEnd): string | null {
+  const ref = typeof r.artifactRef === 'string' && r.artifactRef !== '' ? r.artifactRef : null;
+  return r.promoted ? ref : null;
+}
+
+/** The last line of `eval`: the promotion, or the frozen artifact and why it was not promoted. */
+function pipelineEndLine(r: PipelineEnd): string {
+  const promoted = promotedRef(r);
+  if (promoted !== null) return `promoted to test as ${promoted}`;
+  const ref = typeof r.artifactRef === 'string' && r.artifactRef !== '' ? r.artifactRef : null;
+  const why = r.stages.find((s) => s.stage === 'evaluation' && s.status !== 'passed')?.detail ?? '';
+  const reason = why === '' ? '' : `: ${why}`;
+  return ref === null ? `not promoted${reason}` : `frozen as ${ref}; not promoted${reason}`;
 }
 
 /**
@@ -257,14 +287,15 @@ async function awaitBackgroundPipeline(
   api: ApiClient,
   agent: string,
   branchId: string
-): Promise<PipelineResult | null> {
+): Promise<PipelineEnd | null> {
   const sleep = io.sleep ?? ((ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)));
   for (let waited = 0; waited <= PIPELINE_WAIT_MS; waited += PIPELINE_POLL_MS) {
     await sleep(PIPELINE_POLL_MS);
     const b = (await api.codeBranches(agent)).find((x) => x.branchId === branchId);
     const stages = b?.pipeline ?? [];
     if (b !== undefined && stages.length > 0 && !stages.some((s) => s.status === 'running')) {
-      return { artifactRef: b.artifactRef ?? null, stages };
+      // The branch says what the run ended as (pipeline.ts record): promoted only when its status is.
+      return { artifactRef: b.artifactRef ?? null, stages, promoted: b.status === 'promoted' };
     }
   }
   return null;
