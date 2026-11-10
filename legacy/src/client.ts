@@ -77,7 +77,11 @@ export interface PipelineQuote {
   readonly limits: Readonly<Record<string, number>>;
 }
 
-export interface PipelineStage {
+/**
+ * One row of a code-capability pipeline run, as the API answers it. NOT the inbound agent pipeline's `PipelineStage`
+ * (shared-types agent-model/agent-pipeline.ts:51); named apart so T1.17.3 AC2 sees no redeclaration.
+ */
+export interface CodePipelineStageRow {
   readonly stage: string;
   readonly status: string;
   readonly detail: string;
@@ -85,7 +89,7 @@ export interface PipelineStage {
 
 export interface PipelineResult {
   readonly artifactRef: string | null;
-  readonly stages: readonly PipelineStage[];
+  readonly stages: readonly CodePipelineStageRow[];
 }
 
 /**
@@ -95,14 +99,14 @@ export interface PipelineResult {
 export interface PipelineAccepted {
   readonly status: 'running';
   readonly branchId: string;
-  readonly stages: readonly PipelineStage[];
+  readonly stages: readonly CodePipelineStageRow[];
 }
 
 /** One branch as GET .../code-branches answers it: the fields `eval` reads after a background run. */
 export interface BranchView {
   readonly branchId: string;
   readonly status: string;
-  readonly pipeline?: readonly PipelineStage[];
+  readonly pipeline?: readonly CodePipelineStageRow[];
   readonly artifactRef?: string | null;
 }
 
