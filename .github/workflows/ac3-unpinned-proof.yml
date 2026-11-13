@@ -1,0 +1,12 @@
+# T0.1.4-AC3 proof ONLY: an unpinned action (a tag, not a commit SHA). The `Pinned actions` check must fail on this
+# PR. This PR is never merged.
+name: AC3 unpinned proof
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
