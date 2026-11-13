@@ -3,7 +3,7 @@
 ## Supported CLI versions
 
 | Release line | Supported |
-|---|---|
+| --- | --- |
 | Current major | Fully: features, fixes and security fixes |
 | Previous major | Security and critical fixes for **6 months** after the next major's first release |
 | Older majors | Not supported |

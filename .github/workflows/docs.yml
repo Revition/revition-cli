@@ -17,3 +17,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
+        with:
+          # The action's default also lints the root *.md files; the T0.1.5 docs lint covers docs/ only.
+          globs: docs/**/*.md
