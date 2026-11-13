@@ -1,0 +1,9 @@
+{
+  "extends": "@revition/config/typescript/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node", "jest"]
+  },
+  "include": ["src"]
+}

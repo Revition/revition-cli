@@ -1,0 +1,32 @@
+{
+  "name": "@revition/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "revition: scaffold, check, test locally, evaluate and propose Revition extensions",
+  "bin": {
+    "revition": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "jest"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "devDependencies": {
+    "@revition/config": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.0",
+    "eslint": "^9.28.0",
+    "globals": "^17.4.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
+  }
+}

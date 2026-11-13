@@ -11,12 +11,13 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "node --test && pnpm -r --if-present run test",
+    "test": "node --test \"scripts/*.test.mjs\" && node --import tsx --test \"legacy-parity/*.test.mjs\" && pnpm -r --if-present run test",
     "build": "pnpm -r --if-present run build",
     "check:actions": "node scripts/check-pinned-actions.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "eslint": "10.13.0"
+    "eslint": "10.13.0",
+    "tsx": "4.23.15"
   }
 }
