@@ -1,0 +1,87 @@
+{
+  "scaffold": {
+    "exit": 0,
+    "requests": [
+      {
+        "method": "GET",
+        "url": "https://api.mock.invalid/api/v1/foundry/dev/starters/hello",
+        "headers": {
+          "authorization": "Bearer parity-test-token"
+        },
+        "body": null
+      }
+    ]
+  },
+  "build": {
+    "exit": 0,
+    "requests": [
+      {
+        "method": "POST",
+        "url": "https://api.mock.invalid/api/v1/foundry/dev/authoring/check",
+        "headers": {
+          "authorization": "Bearer parity-test-token",
+          "content-type": "application/json"
+        },
+        "body": "{\"files\":{\"capability.ts\":\"export default 1;\\n\",\"fixtures.json\":\"{}\\n\"}}"
+      }
+    ]
+  },
+  "test": {
+    "exit": 0,
+    "requests": [
+      {
+        "method": "POST",
+        "url": "https://api.mock.invalid/api/v1/foundry/dev/authoring/check",
+        "headers": {
+          "authorization": "Bearer parity-test-token",
+          "content-type": "application/json"
+        },
+        "body": "{\"files\":{\"capability.ts\":\"export default 1;\\n\",\"fixtures.json\":\"{}\\n\"}}"
+      },
+      {
+        "method": "GET",
+        "url": "https://api.mock.invalid/api/v1/foundry/dev/docs/sdk",
+        "headers": {
+          "authorization": "Bearer parity-test-token"
+        },
+        "body": null
+      }
+    ]
+  },
+  "deploy": {
+    "exit": 0,
+    "requests": [
+      {
+        "method": "POST",
+        "url": "https://api.mock.invalid/api/v1/foundry/deployments/ag_parity/code-branches",
+        "headers": {
+          "authorization": "Bearer parity-test-token",
+          "content-type": "application/json"
+        },
+        "body": "{\"mode\":\"cli\",\"files\":{\"capability.ts\":\"export default 1;\\n\",\"fixtures.json\":\"{}\\n\"}}"
+      }
+    ]
+  },
+  "eval": {
+    "exit": 0,
+    "requests": [
+      {
+        "method": "GET",
+        "url": "https://api.mock.invalid/api/v1/foundry/deployments/ag_parity/code-branches/br_parity/pipeline-quote",
+        "headers": {
+          "authorization": "Bearer parity-test-token"
+        },
+        "body": null
+      },
+      {
+        "method": "POST",
+        "url": "https://api.mock.invalid/api/v1/foundry/deployments/ag_parity/code-branches/br_parity/pipeline",
+        "headers": {
+          "authorization": "Bearer parity-test-token",
+          "content-type": "application/json"
+        },
+        "body": "{\"quoteId\":\"q_parity\"}"
+      }
+    ]
+  }
+}
