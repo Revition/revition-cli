@@ -1,0 +1,8 @@
+# Default owners for everything in the repository.
+*                         @revition/cli-maintainers
+
+# Workflows, repository configuration and release automation.
+/.github/                 @revition/cli-security
+
+# Authentication and credential handling.
+/packages/core/src/auth/  @revition/cli-security
