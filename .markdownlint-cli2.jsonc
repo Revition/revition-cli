@@ -1,0 +1,8 @@
+// T0.1.5: docs lint. Scoped to docs/; the default rules plus a 120-character line limit (tables and code exempt).
+{
+  "config": {
+    "default": true,
+    "MD013": { "line_length": 120, "tables": false, "code_blocks": false }
+  },
+  "globs": ["docs/**/*.md"]
+}
