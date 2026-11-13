@@ -19,5 +19,10 @@
     "@eslint/js": "10.0.1",
     "eslint": "10.13.0",
     "tsx": "4.23.15"
+  },
+  "pnpm": {
+    "overrides": {
+      "minimatch": "11.0.3"
+    }
   }
 }
