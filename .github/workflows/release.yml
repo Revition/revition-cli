@@ -1,0 +1,49 @@
+name: Release
+
+# T0.1.2: the ONLY workflow that can publish to npm. npm Trusted Publishing (OIDC) binds a package to this repository,
+# this file and the `npm-release` environment (deployment branch: main only), so no npm token exists anywhere and
+# provenance is automatic. Until the CLI release jobs arrive (T1.5.2), the one job here publishes the CLI plugin test
+# fixture (fixtures/e2e-fixture-plugin, "test fixture, not for use") by hand, for the T4.2.3 live plugin check.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to publish
+        type: choice
+        options: [e2e-fixture-plugin]
+        default: e2e-fixture-plugin
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish-fixture:
+    name: Publish the plugin test fixture
+    runs-on: ubuntu-latest
+    environment: npm-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+      - name: npm 11.5.1 or later (trusted publishing needs it)
+        run: |
+          v="$(npm --version)"
+          echo "npm $v"
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1);' "$v"
+      - name: npm publish (OIDC trusted publishing, provenance automatic)
+        run: npm publish ./fixtures/e2e-fixture-plugin --access public
+      - name: Read back the published version and its attestations
+        run: |
+          v="$(node -p "require('./fixtures/e2e-fixture-plugin/package.json').version")"
+          npm view "@revition/e2e-fixture-plugin@$v" name version dist.integrity dist.attestations --json
