@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// The `corvito` executable (T3.3.3, D10): exactly `revition assist <arguments>`, the same command module.
+import { execute } from '@oclif/core';
+
+await execute({ dir: import.meta.url, args: ['assist', ...process.argv.slice(2)] });

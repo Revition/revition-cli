@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/agents.status.v1.json",
+  "title": "revition agents status --json",
+  "x-schema-id": "revition.agents.status.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "agents:status"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "draftVsLive": {
+              "type": "object",
+              "properties": {
+                "changedSections": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "added": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "removed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "hasUnsavedChanges": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "added",
+                "changedSections",
+                "removed"
+              ],
+              "additionalProperties": true
+            },
+            "tests": {
+              "type": "object",
+              "properties": {
+                "report": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "draftVersion": {
+                          "type": "number"
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "caseId": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "passed": {
+                                "type": "boolean"
+                              },
+                              "detail": {
+                                "type": "string"
+                              },
+                              "regressionOf": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "caseId",
+                              "passed",
+                              "status",
+                              "type"
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "regressionCount": {
+                          "type": "number"
+                        },
+                        "allPassed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "allPassed",
+                        "draftVersion",
+                        "regressionCount",
+                        "results"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "run": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "failed",
+                            "finished",
+                            "refused",
+                            "running"
+                          ]
+                        },
+                        "done": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "reason": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "done",
+                        "status",
+                        "total"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "report",
+                "run"
+              ],
+              "additionalProperties": true
+            },
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "env": {
+                    "type": "string"
+                  },
+                  "provisioned": {
+                    "type": "boolean"
+                  },
+                  "artifactRef": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "promotedAt": {
+                    "type": "string"
+                  },
+                  "approvedBy": {
+                    "type": "string"
+                  },
+                  "pending": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "requestedBy": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "requestedAt",
+                          "requestedBy",
+                          "to"
+                        ],
+                        "additionalProperties": true
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "artifactRef",
+                  "env",
+                  "pending",
+                  "provisioned"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "agentId",
+            "draftVsLive",
+            "environments",
+            "tests"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

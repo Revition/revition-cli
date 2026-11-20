@@ -1,0 +1,48 @@
+{
+  "name": "@revition/plugin-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Revition CLI MCP server mode: the platform operations as MCP tools over stdio, read-only by default",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node ../../packages/cli/scripts/oclif-manifest.mjs .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@oclif/core": "4.11.14",
+    "@revition/cli-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.17.0",
+    "@types/node": "25.5.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "oclif": {
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " ",
+    "topics": {
+      "mcp": {
+        "description": "Revition as an MCP server for AI clients (Claude Code, Cursor, IDEs)."
+      }
+    }
+  }
+}

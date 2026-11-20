@@ -1,0 +1,6196 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Revition CLI API",
+    "version": "2026-11-13",
+    "description": "The CLI-facing subset of the Revition platform API (REVITION-CLI-PLAN T1.2.5).",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "contact": {
+      "name": "Revition",
+      "url": "https://developer.revition.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.revition.com/api/v1/foundry"
+    }
+  ],
+  "tags": [
+    {
+      "name": "agent-templates",
+      "description": "CLI operations under agent-templates"
+    },
+    {
+      "name": "deployments",
+      "description": "CLI operations under deployments"
+    },
+    {
+      "name": "dev-apps",
+      "description": "CLI operations under dev-apps"
+    },
+    {
+      "name": "dev-assist",
+      "description": "CLI operations under dev-assist"
+    },
+    {
+      "name": "dev-audit",
+      "description": "CLI operations under dev-audit"
+    },
+    {
+      "name": "dev-authoring",
+      "description": "CLI operations under dev-authoring"
+    },
+    {
+      "name": "dev-cli",
+      "description": "CLI operations under dev-cli"
+    },
+    {
+      "name": "dev-docs",
+      "description": "CLI operations under dev-docs"
+    },
+    {
+      "name": "dev-extension-points",
+      "description": "CLI operations under dev-extension-points"
+    },
+    {
+      "name": "dev-link",
+      "description": "CLI operations under dev-link"
+    },
+    {
+      "name": "dev-me",
+      "description": "CLI operations under dev-me"
+    },
+    {
+      "name": "dev-plugins",
+      "description": "CLI operations under dev-plugins"
+    },
+    {
+      "name": "dev-projects",
+      "description": "CLI operations under dev-projects"
+    },
+    {
+      "name": "dev-register",
+      "description": "CLI operations under dev-register"
+    },
+    {
+      "name": "dev-starters",
+      "description": "CLI operations under dev-starters"
+    },
+    {
+      "name": "dev-tokens",
+      "description": "CLI operations under dev-tokens"
+    },
+    {
+      "name": "dev-wallet",
+      "description": "CLI operations under dev-wallet"
+    },
+    {
+      "name": "release",
+      "description": "CLI operations under release"
+    },
+    {
+      "name": "runtime-secrets",
+      "description": "CLI operations under runtime-secrets"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A CLI session (rvs_...) or a personal access token (rvt_...). The two session-exchange routes take the Revition CLI's own Auth0 access token instead."
+      }
+    },
+    "schemas": {
+      "EvalSuite": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "default": "",
+            "type": "string",
+            "maxLength": 500
+          },
+          "capability": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "dimensions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "eval_management",
+                "task_success",
+                "output_quality",
+                "tool_use",
+                "trajectory",
+                "safety",
+                "robustness",
+                "grounding_knowledge",
+                "memory",
+                "human_feedback",
+                "efficiency",
+                "regression",
+                "eval_methods"
+              ]
+            }
+          },
+          "cases": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "input": {},
+                "expected": {}
+              },
+              "required": [
+                "id",
+                "input"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "dimensions",
+          "cases"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorBody": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "CliSession": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orgId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cli:read",
+                "cli:write",
+                "cli:submit",
+                "cli:agents",
+                "cli:assist"
+              ]
+            },
+            "minItems": 1
+          },
+          "deviceName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "os": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "cliVersion": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "grant": {
+            "type": "string",
+            "enum": [
+              "browser",
+              "device"
+            ]
+          },
+          "authFreshUntil": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "absoluteExpiresAt": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "string"
+          },
+          "lastIp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revokedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "userId",
+          "email",
+          "orgId",
+          "scopes",
+          "deviceName",
+          "os",
+          "cliVersion",
+          "grant",
+          "authFreshUntil",
+          "createdAt",
+          "absoluteExpiresAt",
+          "lastUsedAt",
+          "lastIp",
+          "revokedAt",
+          "revokedBy"
+        ],
+        "additionalProperties": false
+      },
+      "PersonalAccessToken": {
+        "type": "object",
+        "properties": {
+          "tokenId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "orgId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cli:read",
+                "cli:write",
+                "cli:submit",
+                "cli:agents",
+                "cli:assist"
+              ]
+            },
+            "minItems": 1
+          },
+          "prefix": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 8
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastIp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "tokenId",
+          "orgId",
+          "userId",
+          "name",
+          "scopes",
+          "prefix",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt",
+          "lastIp",
+          "revokedAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/dev/apps/{appId}/keys/{keyId}": {
+      "delete": {
+        "operationId": "deleteDevAppsAppIdKeysKeyId",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "keyId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/secrets/{name}": {
+      "delete": {
+        "operationId": "deleteDevAppsAppIdSecretsName",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "name",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "putDevAppsAppIdSecretsName",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "name",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/cli/sessions/{id}": {
+      "delete": {
+        "operationId": "deleteDevCliSessionsId",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CliSession"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}": {
+      "delete": {
+        "operationId": "deleteDevProjectsProjectId",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getDevProjectsProjectId",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/sandbox": {
+      "delete": {
+        "operationId": "deleteDevProjectsProjectIdSandbox",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevProjectsProjectIdSandbox",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/tokens/{tokenId}": {
+      "delete": {
+        "operationId": "deleteDevTokensTokenId",
+        "tags": [
+          "dev-tokens"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "tokenId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalAccessToken"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runtime-secrets/{name}": {
+      "delete": {
+        "operationId": "deleteRuntimeSecretsName",
+        "tags": [
+          "runtime-secrets"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "name",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "putRuntimeSecretsName",
+        "tags": [
+          "runtime-secrets"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "name",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-templates": {
+      "get": {
+        "operationId": "getAgentTemplates",
+        "tags": [
+          "agent-templates"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments": {
+      "get": {
+        "operationId": "getDeployments",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentId",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/code-branches": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdCodeBranches",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDeploymentsDeploymentIdCodeBranches",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:submit; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:submit",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/code-branches/{branchId}/pipeline-quote": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdCodeBranchesBranchIdPipelineQuote",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "branchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/code-branches/{branchId}/sandbox-check": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdCodeBranchesBranchIdSandboxCheck",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "branchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/draft": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdDraft",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "putDeploymentsDeploymentIdDraft",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/draft/diff": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdDraftDiff",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/environments": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdEnvironments",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/intelligence/traces": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdIntelligenceTraces",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scopeId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "preset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/runs": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdRuns",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scopeId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/tests/quote": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdTestsQuote",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/tests/report": {
+      "get": {
+        "operationId": "getDeploymentsDeploymentIdTestsReport",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps": {
+      "get": {
+        "operationId": "getDevApps",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevApps",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/analytics": {
+      "get": {
+        "operationId": "getDevAppsAppIdAnalytics",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "days",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/evals": {
+      "get": {
+        "operationId": "getDevAppsAppIdEvals",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "jobId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevAppsAppIdEvals",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/evals/quote": {
+      "get": {
+        "operationId": "getDevAppsAppIdEvalsQuote",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "suiteId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quoteId": {
+                      "type": "string"
+                    },
+                    "appId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "suiteId": {
+                      "type": "string"
+                    },
+                    "digest": {
+                      "type": "string"
+                    },
+                    "cases": {
+                      "type": "integer"
+                    },
+                    "modelCalls": {
+                      "type": "integer"
+                    },
+                    "estCredits": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "balanceCredits": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "quoteId",
+                    "appId",
+                    "projectId",
+                    "suiteId",
+                    "digest",
+                    "cases",
+                    "modelCalls",
+                    "estCredits",
+                    "balanceCredits"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/keys": {
+      "get": {
+        "operationId": "getDevAppsAppIdKeys",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevAppsAppIdKeys",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/listing": {
+      "get": {
+        "operationId": "getDevAppsAppIdListing",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/runs": {
+      "get": {
+        "operationId": "getDevAppsAppIdRuns",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/runs/{runId}/logs": {
+      "get": {
+        "operationId": "getDevAppsAppIdRunsRunIdLogs",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "runId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/secrets": {
+      "get": {
+        "operationId": "getDevAppsAppIdSecrets",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/submissions": {
+      "get": {
+        "operationId": "getDevAppsAppIdSubmissions",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevAppsAppIdSubmissions",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:submit; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:submit",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/submissions/{version}": {
+      "get": {
+        "operationId": "getDevAppsAppIdSubmissionsVersion",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "version",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/audit": {
+      "get": {
+        "operationId": "getDevAudit",
+        "tags": [
+          "dev-audit"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/cli/flags": {
+      "get": {
+        "operationId": "getDevCliFlags",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "boolean"
+                      }
+                    },
+                    "ttl": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "flags",
+                    "ttl"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/cli/sessions": {
+      "get": {
+        "operationId": "getDevCliSessions",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CliSession"
+                      }
+                    },
+                    "next": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sessions",
+                    "next"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevCliSessions",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "Takes the Revition CLI's own Auth0 access token (the session exchange).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "auth0-cli-token",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "cli:read",
+                        "cli:write",
+                        "cli:submit",
+                        "cli:agents",
+                        "cli:assist"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "deviceName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "os": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "cliVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "devicePublicKey": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "scopes",
+                  "deviceName",
+                  "os",
+                  "cliVersion",
+                  "devicePublicKey"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "credential": {
+                      "type": "string"
+                    },
+                    "authFreshUntil": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sessionId",
+                    "credential",
+                    "authFreshUntil"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/docs/changelog": {
+      "get": {
+        "operationId": "getDevDocsChangelog",
+        "tags": [
+          "dev-docs"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/docs/sdk": {
+      "get": {
+        "operationId": "getDevDocsSdk",
+        "tags": [
+          "dev-docs"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/docs/ui": {
+      "get": {
+        "operationId": "getDevDocsUi",
+        "tags": [
+          "dev-docs"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/extension-points": {
+      "get": {
+        "operationId": "getDevExtensionPoints",
+        "tags": [
+          "dev-extension-points"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/me": {
+      "get": {
+        "operationId": "getDevMe",
+        "tags": [
+          "dev-me"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/plugins": {
+      "get": {
+        "operationId": "getDevPlugins",
+        "tags": [
+          "dev-plugins"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/plugins/publishers/{publisherId}": {
+      "get": {
+        "operationId": "getDevPluginsPublishersPublisherId",
+        "tags": [
+          "dev-plugins"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "publisherId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects": {
+      "get": {
+        "operationId": "getDevProjects",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevProjects",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/starters": {
+      "get": {
+        "operationId": "getDevStarters",
+        "tags": [
+          "dev-starters"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "extensionPoint",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/starters/{starterId}": {
+      "get": {
+        "operationId": "getDevStartersStarterId",
+        "tags": [
+          "dev-starters"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "starterId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/tokens": {
+      "get": {
+        "operationId": "getDevTokens",
+        "tags": [
+          "dev-tokens"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokens": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PersonalAccessToken"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postDevTokens",
+        "tags": [
+          "dev-tokens"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "cli:read",
+                        "cli:write",
+                        "cli:submit",
+                        "cli:agents",
+                        "cli:assist"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "expiresInDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 90
+                  }
+                },
+                "required": [
+                  "name",
+                  "scopes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "pat": {
+                      "$ref": "#/components/schemas/PersonalAccessToken"
+                    }
+                  },
+                  "required": [
+                    "token",
+                    "pat"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/wallet": {
+      "get": {
+        "operationId": "getDevWallet",
+        "tags": [
+          "dev-wallet"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/release/apps/{appId}/channels": {
+      "get": {
+        "operationId": "getReleaseAppsAppIdChannels",
+        "tags": [
+          "release"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/release/apps/{appId}/rollouts": {
+      "get": {
+        "operationId": "getReleaseAppsAppIdRollouts",
+        "tags": [
+          "release"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runtime-secrets": {
+      "get": {
+        "operationId": "getRuntimeSecrets",
+        "tags": [
+          "runtime-secrets"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-templates/scaffold": {
+      "post": {
+        "operationId": "postAgentTemplatesScaffold",
+        "tags": [
+          "agent-templates"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/code-branches/{branchId}/pipeline": {
+      "post": {
+        "operationId": "postDeploymentsDeploymentIdCodeBranchesBranchIdPipeline",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "branchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/draft/validate": {
+      "post": {
+        "operationId": "postDeploymentsDeploymentIdDraftValidate",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployments/{deploymentId}/tests/run": {
+      "post": {
+        "operationId": "postDeploymentsDeploymentIdTestsRun",
+        "tags": [
+          "deployments"
+        ],
+        "description": "Requires the CLI scope cli:agents; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:agents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "deploymentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/keys/{keyId}/rotate": {
+      "post": {
+        "operationId": "postDevAppsAppIdKeysKeyIdRotate",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "keyId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/assist/sessions": {
+      "post": {
+        "operationId": "postDevAssistSessions",
+        "tags": [
+          "dev-assist"
+        ],
+        "description": "Requires the CLI scope cli:assist; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:assist",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/assist/sessions/{id}/turns": {
+      "post": {
+        "operationId": "postDevAssistSessionsIdTurns",
+        "tags": [
+          "dev-assist"
+        ],
+        "description": "Requires the CLI scope cli:assist; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:assist",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/authoring/check": {
+      "post": {
+        "operationId": "postDevAuthoringCheck",
+        "tags": [
+          "dev-authoring"
+        ],
+        "description": "Requires the CLI scope cli:read; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:read",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/cli/sessions/{id}/reauth": {
+      "post": {
+        "operationId": "postDevCliSessionsIdReauth",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "Takes the Revition CLI's own Auth0 access token (the session exchange).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "auth0-cli-token",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "signature": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "timestamp": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "signature",
+                  "timestamp"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CliSession"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/cli/telemetry": {
+      "post": {
+        "operationId": "postDevCliTelemetry",
+        "tags": [
+          "dev-cli"
+        ],
+        "description": "The caller manages its own credentials: any CLI scope.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "any",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "installId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "cliVersion": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "os": {
+                          "type": "string",
+                          "enum": [
+                            "darwin",
+                            "linux",
+                            "win32"
+                          ]
+                        },
+                        "nodeMajor": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000
+                        },
+                        "command": {
+                          "type": "string",
+                          "maxLength": 80,
+                          "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)*$"
+                        },
+                        "flagsUsed": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "maxItems": 40
+                        },
+                        "exitCode": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        },
+                        "durationMs": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "ci": {
+                          "type": "boolean"
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "maxLength": 40
+                        }
+                      },
+                      "required": [
+                        "schemaVersion",
+                        "installId",
+                        "cliVersion",
+                        "os",
+                        "nodeMajor",
+                        "command",
+                        "flagsUsed",
+                        "exitCode",
+                        "durationMs",
+                        "ci",
+                        "timestamp"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 50
+                  }
+                },
+                "required": [
+                  "events"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "accepted"
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/link": {
+      "post": {
+        "operationId": "postDevLink",
+        "tags": [
+          "dev-link"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/sandbox/exec": {
+      "post": {
+        "operationId": "postDevProjectsProjectIdSandboxExec",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/sandbox/run": {
+      "post": {
+        "operationId": "postDevProjectsProjectIdSandboxRun",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/sandbox/test": {
+      "post": {
+        "operationId": "postDevProjectsProjectIdSandboxTest",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/register": {
+      "post": {
+        "operationId": "postDevRegister",
+        "tags": [
+          "dev-register"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/apps/{appId}/scopes": {
+      "put": {
+        "operationId": "putDevAppsAppIdScopes",
+        "tags": [
+          "dev-apps"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/files": {
+      "put": {
+        "operationId": "putDevProjectsProjectIdFiles",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/projects/{projectId}/layout": {
+      "put": {
+        "operationId": "putDevProjectsProjectIdLayout",
+        "tags": [
+          "dev-projects"
+        ],
+        "description": "Requires the CLI scope cli:write; RBAC and data-level checks then apply as on the web.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-cli-scope": "cli:write",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-API-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "Revition-CLI-Version",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Refused (401 sign-in, 403 scope / human-only, 426 upgrade, 429 rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@revition/plugin-agents",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Revition CLI agents as code: the definition file, validate, list, pull, diff, push, test, status, runs",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node ../../packages/cli/scripts/oclif-manifest.mjs .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@oclif/core": "4.11.14",
+    "@revition/cli-core": "workspace:*",
+    "ajv": "8.17.1",
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "oclif": {
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " ",
+    "topics": {
+      "agents": {
+        "description": "Your workspace's agents as code: definition files, the draft, tests, status and runs."
+      },
+      "agents:environments": {
+        "description": "An agent's environments (promotion is a human step in the portal)."
+      }
+    }
+  }
+}

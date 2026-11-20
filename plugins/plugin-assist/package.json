@@ -1,0 +1,43 @@
+{
+  "name": "@revition/plugin-assist",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The terminal assistant (assist): the session UX and the local tool executor under the permission policy",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node ../../packages/cli/scripts/oclif-manifest.mjs .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@oclif/core": "4.11.14",
+    "@revition/cli-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "ajv": "8.17.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "oclif": {
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " "
+  }
+}

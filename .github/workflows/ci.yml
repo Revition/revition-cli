@@ -25,6 +25,30 @@ jobs:
           node-version: 22.x
       - run: node scripts/check-pinned-actions.mjs
 
+  supply-chain:
+    name: Supply chain (T1.5.3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - run: pnpm check:install-scripts
+      - run: pnpm check:licenses
+      - run: pnpm check:size
+      - run: pnpm audit --prod --audit-level high
+      - name: OSV scan
+        uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+
   build:
     name: Build (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
@@ -45,8 +69,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      # The CLI tests run the built binary (dist + oclif manifests): build first.
       - run: pnpm build
+      - run: pnpm test
       # The CLI package arrives with the migration (T0.1.3); until then these two steps have nothing to run.
       - name: CLI starts (--version)
         if: hashFiles('packages/cli/package.json') != ''

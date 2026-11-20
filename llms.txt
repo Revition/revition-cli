@@ -1,0 +1,32 @@
+# Revition CLI
+
+> `revition` is the command-line interface to the Revition platform: build, test, evaluate and ship extensions and
+> agents. This file tells a language model how to drive it safely and non-interactively.
+
+## Use
+
+- List every command and its contract: `revition commands --json`
+- Add `--json` to any command: stdout holds exactly one JSON envelope `{schemaVersion, command, ok, data, error,
+  warnings, meta}`; streams (`--follow`) print NDJSON.
+- Each command's `--json` schema: `schemas/cli/<command id with dots>.v1.json` (generated from the command's type).
+- Never hang: pass `--no-input`; a change needs `--yes` when it cannot prompt (a typed confirmation included: pass
+  `--yes` only for the exact resource you mean).
+- Authenticate with `REVITION_TOKEN=rvt_...` in the environment; never put a token or secret in an argument.
+- Paid commands (`eval run`, `branches eval`, `agents test`) quote first; use `--dry-run` to read the quote; spend only
+  with an approval and `--yes`.
+
+## Exit codes
+
+0 ok; 1 failure; 2 usage / confirmation needed; 3 sign in; 4 not permitted; 5 not found; 6 conflict or failed check;
+7 rate limited; 8 server error; 9 network; 10 upgrade the CLI; 11 cancelled; 12 payment needed.
+
+## Never
+
+- Publishing, approving, going live, promoting and release changes are human steps in the web portal. The CLI has no
+  command for them; the platform refuses a CLI credential on them. Use `revition ... open` to hand a person the page.
+
+## Docs
+
+- [Driving the CLI from an agent](docs/ai-agents.md)
+- [Command reference](docs/reference/commands.md)
+- [Output and exit codes](docs/output.md)

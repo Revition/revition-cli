@@ -1,0 +1,70 @@
+# REVITION-CLI-PLAN T1.2.6 (:1319-1321, :1326-1328, AC3 :1334, edge :1337): the nightly read-only smoke against staging.
+# - Read-only: a CI PAT with scope cli:read ONLY (30-day expiry), stored as the secret REVITION_CI_PAT in the
+#   `nightly-staging` environment, which only this scheduled workflow uses.
+# - doctor, whoami, apps list, docs sdk; no write and no paid call.
+# - Staging down = "platform unavailable" (network class, exit 9), retried, never reported as a CLI regression.
+# - A failure opens an issue; 7 days before the PAT expires an issue asks for its rotation.
+name: Nightly contract smoke
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-contract
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Read-only smoke against staging
+    runs-on: ubuntu-latest
+    environment: nightly-staging
+    permissions:
+      contents: read
+      issues: write
+    env:
+      REVITION_TOKEN: ${{ secrets.REVITION_CI_PAT }}
+      # The staging host is a repository variable, never written in the code (user ruling 2026-11-20).
+      REVITION_HOST: ${{ vars.REVITION_STAGING_HOST }}
+      REVITION_NO_UPDATE_CHECK: '1'
+      DO_NOT_TRACK: '1'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm -r --if-present run build
+      - name: Smoke (read-only, retried while staging is unreachable)
+        id: smoke
+        shell: bash
+        # The loop lives in scripts/nightly-smoke.sh so its $0 rehearsal (e2e/rehearsal/nightly.rehearsal.test.ts) runs
+        # exactly this code.
+        run: bash scripts/nightly-smoke.sh
+      - name: PAT rotation check (7 days before expiry)
+        id: rotation
+        if: always()
+        run: node scripts/pat-rotation-check.mjs
+      - name: PAT rotation reminder
+        if: always() && steps.rotation.outputs.rotate == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPIRES_AT: ${{ steps.rotation.outputs.expiresAt }}
+        run: >-
+          gh issue create --title "Rotate the nightly CI PAT"
+          --body "The cli:read PAT used by nightly-contract.yml expires $EXPIRES_AT. Create a new one (cli:read, 30 days)
+          and update REVITION_CI_PAT in the nightly-staging environment."
+      - name: Open an issue on failure
+        if: failure() && steps.smoke.outputs.unavailable != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Nightly contract smoke failed (${{ github.run_id }})" --body "See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -1,0 +1,39 @@
+{
+  "status": 200,
+  "body": {
+    "id": "hello-tool",
+    "title": "Hello tool (TypeScript)",
+    "extensionPoint": "code_tool",
+    "language": "ts",
+    "cloneRef": "starter://hello-tool@1.0.0",
+    "upload": {
+      "id": "hello-tool",
+      "name": "Hello tool (TypeScript)",
+      "language": "ts",
+      "source": "export async function main(input: { name?: string }): Promise<{ greeting: string }> {\n  return { greeting: `Hello, ${input.name ?? 'world'}` };\n}\n",
+      "entrypoint": "main",
+      "declaredPermissions": [],
+      "secretsScope": [],
+      "sdkPermissions": [],
+      "sdkVersion": "1.0.0",
+      "requiresRuntimeTier": "shared_managed",
+      "dependencies": []
+    },
+    "tests": [
+      {
+        "name": "greets by name",
+        "input": {
+          "name": "Ada"
+        },
+        "expect": {
+          "greeting": "Hello, Ada"
+        }
+      }
+    ],
+    "files": {
+      "revition.json": "{\n  \"summary\": \"Hello tool (TypeScript)\",\n  \"capabilities\": [\n    {\n      \"id\": \"hello-tool\",\n      \"name\": \"Hello tool (TypeScript)\",\n      \"language\": \"ts\",\n      \"entrypoint\": \"main\",\n      \"declaredPermissions\": [],\n      \"secretsScope\": [],\n      \"sdkPermissions\": [],\n      \"sdkVersion\": \"1.0.0\",\n      \"requiresRuntimeTier\": \"shared_managed\",\n      \"dependencies\": []\n    }\n  ]\n}\n",
+      "capabilities/hello-tool/main.ts": "export async function main(input: { name?: string }): Promise<{ greeting: string }> {\n  return { greeting: `Hello, ${input.name ?? 'world'}` };\n}\n",
+      "capabilities/hello-tool/tests.json": "[\n  {\n    \"name\": \"greets by name\",\n    \"input\": {\n      \"name\": \"Ada\"\n    },\n    \"expect\": {\n      \"greeting\": \"Hello, Ada\"\n    }\n  }\n]\n"
+    }
+  }
+}

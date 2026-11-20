@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/core/tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "resolveJsonModule": true
+  },
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["src/**/*.test.ts", "src/**/test-fixtures/**"]
+}

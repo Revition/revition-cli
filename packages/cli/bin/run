@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// The `revition` executable. ESM (the package is "type": "module"); oclif loads the compiled commands from dist/.
+import { execute } from '@oclif/core';
+
+await execute({ dir: import.meta.url });

@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/branches.eval.v1.json",
+  "title": "revition branches eval --json",
+  "x-schema-id": "revition.branches.eval.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "branches:eval"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "branchId": {
+              "type": "string"
+            },
+            "quote": {
+              "type": "object",
+              "properties": {
+                "quoteId": {
+                  "type": "string"
+                },
+                "sandboxRuns": {
+                  "type": "number"
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {},
+                  "required": [],
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "limits",
+                "quoteId",
+                "sandboxRuns"
+              ],
+              "additionalProperties": true
+            },
+            "ran": {
+              "type": "boolean"
+            },
+            "end": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactRef": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "stages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "stage": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "detail",
+                          "stage",
+                          "status"
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "promoted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "artifactRef",
+                    "promoted",
+                    "stages"
+                  ],
+                  "additionalProperties": true
+                }
+              ]
+            },
+            "quoteShown": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "agentId",
+            "branchId",
+            "end",
+            "quote",
+            "quoteShown",
+            "ran"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

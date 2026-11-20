@@ -4,5 +4,9 @@
 # Workflows, repository configuration and release automation.
 /.github/                 @revition/cli-security
 
+# Dependencies: a new or changed dependency needs a security review (T1.5.3).
+package.json              @revition/cli-security
+/pnpm-lock.yaml           @revition/cli-security
+
 # Authentication and credential handling.
 /packages/core/src/auth/  @revition/cli-security

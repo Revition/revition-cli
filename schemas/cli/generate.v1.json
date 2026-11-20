@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/generate.v1.json",
+  "title": "revition generate --json",
+  "x-schema-id": "revition.generate.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "generate"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "capability",
+                "eval-suite",
+                "list",
+                "test",
+                "ui-surface"
+              ]
+            },
+            "written": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "patched": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "problems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "check": {
+                    "enum": [
+                      "layout",
+                      "manifest",
+                      "server",
+                      "size",
+                      "tests"
+                    ]
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "severity": {
+                    "enum": [
+                      "error",
+                      "warning"
+                    ]
+                  }
+                },
+                "required": [
+                  "check",
+                  "file",
+                  "message",
+                  "severity"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "catalog": {}
+          },
+          "required": [
+            "kind",
+            "patched",
+            "problems",
+            "written"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

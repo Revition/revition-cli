@@ -1,0 +1,85 @@
+{
+  "name": "@revition/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Revition command-line interface",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "revition": "./bin/run",
+    "corvito": "./bin/corvito"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/oclif-manifest.mjs",
+    "reference":"node scripts/command-reference.mjs",
+    "reference:check": "node scripts/command-reference.mjs --check",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@oclif/core": "4.11.14",
+    "@revition/cli-core": "workspace:*",
+    "@revition/plugin-agents": "workspace:*",
+    "@revition/plugin-assist": "workspace:*",
+    "@revition/plugin-dev": "workspace:*",
+    "@revition/plugin-mcp": "workspace:*",
+    "undici": "7.30.1"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "ajv": "8.17.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "oclif": {
+    "bin": "revition",
+    "dirname": "revition",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " ",
+    "topics": {
+      "config": {
+        "description": "Read and change CLI settings (never credentials)."
+      },
+      "auth": {
+        "description": "Sign-in state across profiles."
+      },
+      "profiles": {
+        "description": "Accounts and hosts (one profile each)."
+      },
+      "token": {
+        "description": "Personal access tokens for CI."
+      },
+      "telemetry": {
+        "description": "Opt-in anonymous usage data (off unless you turn it on)."
+      },
+      "plugins": {
+        "description": "Verified third-party plugins: search, install, run, update, remove."
+      }
+    },
+    "helpClass": "./dist/help.js",
+    "hooks": {
+      "init": "./dist/hooks/init.js",
+      "prerun": "./dist/hooks/prerun.js",
+      "postrun": "./dist/hooks/postrun.js",
+      "command_not_found": "./dist/hooks/command-not-found.js"
+    },
+    "plugins": [
+      "@revition/plugin-dev",
+      "@revition/plugin-agents",
+      "@revition/plugin-mcp",
+      "@revition/plugin-assist"
+    ],
+    "jitPlugins": {}
+  }
+}

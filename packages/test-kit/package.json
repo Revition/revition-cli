@@ -1,0 +1,17 @@
+{
+  "name": "@revition/test-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "T1.2.6: the contract-consumer mock generated from packages/api-client/openapi/v1.json (test-only, never published)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\""
+  }
+}
