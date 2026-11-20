@@ -1,0 +1,17 @@
+{
+  "name": "@revition/e2e-fixture-plugin",
+  "version": "0.0.1",
+  "description": "Test fixture for the Revition CLI plugin checks. Not for use.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Revition/revition-cli.git",
+    "directory": "fixtures/e2e-fixture-plugin"
+  },
+  "files": [
+    "README.md",
+    "revition-plugin.json",
+    "dist/hello.mjs"
+  ]
+}

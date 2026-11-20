@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "hello": {
+      "entry": "dist/hello.mjs",
+      "summary": "Print one fixed line (test fixture)"
+    }
+  },
+  "permissions": ["exec:none", "network:none", "fs:none"]
+}
