@@ -91,7 +91,8 @@ export default class Login extends RevitionCommand<Out> {
     // T1.3.3: the store is chosen BEFORE any sign-in; no keychain (and no --insecure-storage) refuses here and nothing
     // is written anywhere.
     const store = await storeFor(ctx, profile, paths.stateDir, f['insecure-storage'] === true);
-    const cfg = authConfigFor(host, ctx.env);
+    // T1.2.1 (amended 2026-11-23): the host profile's own Auth0 audience (staging), else https://<host>.
+    const cfg = authConfigFor(host, ctx.env, config.profiles[profile]?.audience);
     const nowSec = (): number => Math.floor(Date.now() / 1000);
     let tokens: TokenSet;
     let nonce: string | null = null;

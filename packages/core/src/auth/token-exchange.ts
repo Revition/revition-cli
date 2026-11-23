@@ -22,7 +22,15 @@ export const DEFAULT_AUTH: { readonly issuerBase: string; readonly clientId: str
   clientId: 'ZQYQKypbAR6ZaSrw1EeHLRHaZNlLERqo',
 };
 
-export function authConfigFor(host: string, env: Readonly<Record<string, string | undefined>>): AuthConfig {
+/**
+ * The audience order (T1.2.1, amended 2026-11-23): REVITION_AUTH_AUDIENCE, then the host profile's own `audience`
+ * (staging: https://api-staging.revition.com), then `https://<host>` (production and the default).
+ */
+export function authConfigFor(
+  host: string,
+  env: Readonly<Record<string, string | undefined>>,
+  profileAudience?: string
+): AuthConfig {
   // Trailing slashes off by a loop, not a /\/+$/ regex: the value comes from the environment (CodeQL polynomial ReDoS).
   let issuerBase = env['REVITION_AUTH_ISSUER'] ?? DEFAULT_AUTH.issuerBase;
   while (issuerBase.endsWith('/')) issuerBase = issuerBase.slice(0, -1);
@@ -34,7 +42,7 @@ export function authConfigFor(host: string, env: Readonly<Record<string, string 
   return {
     issuerBase,
     clientId: env['REVITION_AUTH_CLIENT_ID'] ?? DEFAULT_AUTH.clientId,
-    audience: env['REVITION_AUTH_AUDIENCE'] ?? `https://${host}`,
+    audience: env['REVITION_AUTH_AUDIENCE'] ?? profileAudience ?? `https://${host}`,
   };
 }
 

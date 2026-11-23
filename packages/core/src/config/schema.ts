@@ -11,6 +11,15 @@ export const ProfileSchema = z
     /** The last selected org (the server re-validates it). */
     org: z.string().nullable().default(null),
     authMethod: z.enum(['browser', 'device', 'token']).default('browser'),
+    /**
+     * T1.2.1 (amended 2026-11-23) - the Auth0 API audience of this host profile, when it is not `https://<host>`:
+     * staging is served on api.revition.com but its Auth0 API is https://api-staging.revition.com. Absent = the
+     * default `https://<host>` (production). Only a Revition https origin is accepted.
+     */
+    audience: z
+      .string()
+      .regex(/^https:\/\/([a-z0-9-]+\.)*revition\.com$/)
+      .optional(),
   })
   .strict();
 export type Profile = z.infer<typeof ProfileSchema>;
