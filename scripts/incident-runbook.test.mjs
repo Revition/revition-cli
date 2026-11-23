@@ -24,7 +24,12 @@ describe('T1.5.4 incident response and rollback runbook', () => {
     assert.match(section(2), /exits 10/);
     assert.match(section(3), /revokes the affected CLI sessions and personal access tokens/);
     assert.match(section(4), /verify-release\.mjs @revition\/cli <tag>/);
-    assert.match(section(4), /disable both release environments/);
+    // REVITION-CLI-PLAN.md:1900 "disable release environments": every release environment the workflow uses is named
+    // (T1.5.2 AC2 added release-approval-2, the second approver's environment).
+    assert.match(section(4), /disable the release environments/);
+    for (const env of ['npm-release', 'release-approval', 'release-approval-2']) {
+      assert.match(section(4), new RegExp(`\`${env}\``));
+    }
     assert.match(section(5), /Bad release:[\s\S]*Security:[\s\S]*Credential leak:/);
     assert.match(RUNBOOK, /## Drills[\s\S]*every 6 months/);
   });
