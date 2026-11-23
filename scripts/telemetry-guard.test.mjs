@@ -1,6 +1,6 @@
 // T1.4.2 AC1 (REVITION-CLI-PLAN.md:1707): the suite-wide telemetry spy and its verdict.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -20,9 +20,16 @@ async function childFetch(path, extraEnv = {}) {
   const log = join(mkdtempSync(join(tmpdir(), 'spy-test-')), 'spy.jsonl');
   try {
     const script = `await fetch('http://127.0.0.1:${port}${path}', { method: 'POST', body: '{}' });`;
-    const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-      env: { ...process.env, ...extraEnv, REVITION_TELEMETRY_SPY_LOG: log, NODE_OPTIONS: withSpy('') },
-      encoding: 'utf8',
+    // Async: the server answers from this process's event loop, which a spawnSync would block.
+    const r = await new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
+        env: { ...process.env, ...extraEnv, REVITION_TELEMETRY_SPY_LOG: log, NODE_OPTIONS: withSpy('') },
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+      let stderr = '';
+      child.stderr.on('data', (d) => (stderr += d.toString()));
+      child.on('error', reject);
+      child.on('close', (status) => resolve({ status, stderr }));
     });
     assert.equal(r.status, 0, r.stderr);
   } finally {
