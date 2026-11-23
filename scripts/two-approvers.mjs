@@ -35,7 +35,7 @@ export function twoApproverProblems(approvals) {
 async function main() {
   const api = process.env.GITHUB_API_URL ?? 'https://api.github.com';
   const url = `${api}/repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/approvals`;
-  const res = await fetch(url, {
+  const res = await globalThis.fetch(url, {
     headers: { authorization: `Bearer ${process.env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json' },
   });
   if (!res.ok) {
