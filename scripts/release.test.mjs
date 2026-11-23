@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { canaryVersion, channelFor, packPublic } from './release.mjs';
+import { twoApproverProblems } from './two-approvers.mjs';
 import { distTagProblems, EXPECTED, provenanceProblems, SLSA_V1 } from './verify-release.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,17 +48,41 @@ describe('T1.5.2 trusted publishing, provenance, channels', () => {
     assert.deepEqual(provenanceProblems([attestation()], { name: '@revition/cli', version: '0.2.0' }), []);
   });
 
-  it('[CLI-T1.5.2-AC2] stable waits for release-approval: publish needs build-stable, which needs approve-stable', () => {
+  it('[CLI-T1.5.2-AC2] stable waits for two approvals: publish needs build-stable, which needs approve-stable-2, which needs approve-stable', () => {
     const approve = job(RELEASE, 'approve-stable');
-    assert.match(approve, /environment: release-approval/);
+    assert.match(approve, /environment: release-approval\n/);
     assert.doesNotMatch(approve, /\$\{\{\s*secrets\.|npm publish|id-token/);
-    assert.match(job(RELEASE, 'build-stable'), /needs: approve-stable/);
+    const second = job(RELEASE, 'approve-stable-2');
+    assert.match(second, /needs: \[build, approve-stable\]/);
+    assert.match(second, /environment: release-approval-2\n/);
+    assert.match(second, /run: node scripts\/two-approvers\.mjs/);
+    assert.match(second, /permissions:\n\s+actions: read\n\s+contents: read/);
+    assert.doesNotMatch(second, /\$\{\{\s*secrets\.|npm publish|id-token/);
+    assert.match(job(RELEASE, 'build-stable'), /needs: approve-stable-2\n/);
     const stable = job(RELEASE, 'publish-stable');
     assert.match(stable, /needs: build-stable/);
     assert.match(stable, /environment: npm-release/);
     // the only publish steps are in the two publish jobs, both behind npm-release
-    const publishJobs = ['build', 'publish-canary', 'release-pr', 'approve-stable', 'build-stable', 'publish-stable'].filter((j) => /npm publish/.test(job(RELEASE, j)));
+    const publishJobs = ['build', 'publish-canary', 'release-pr', 'approve-stable', 'approve-stable-2', 'build-stable', 'publish-stable'].filter((j) => /npm publish/.test(job(RELEASE, j)));
     assert.deepEqual(publishJobs, ['publish-canary', 'publish-stable']);
+  });
+
+  it('[CLI-T1.5.2-AC2] one person approving both environments is refused: the publish never starts', () => {
+    const approved = (login, env) => ({ state: 'approved', user: { login }, environments: [{ name: env }] });
+    assert.deepEqual(twoApproverProblems([approved('ajayvarmaco', 'release-approval'), approved('ajayvarmaco', 'release-approval-2')]), [
+      'the same person approved both release-approval and release-approval-2: two different people must approve',
+    ]);
+    assert.deepEqual(twoApproverProblems([approved('ajayvarmaco', 'release-approval')]), ['no approval in release-approval-2']);
+    assert.deepEqual(twoApproverProblems([]), ['no approval in release-approval', 'no approval in release-approval-2']);
+    assert.deepEqual(twoApproverProblems(null), ['no approval in release-approval', 'no approval in release-approval-2']);
+  });
+
+  it('[CLI-T1.5.2-AC2] two different people pass; a rejection never counts as an approval', () => {
+    const a = (state, login, env) => ({ state, user: { login }, environments: [{ name: env }] });
+    assert.deepEqual(twoApproverProblems([a('approved', 'maint-a', 'release-approval'), a('approved', 'maint-b', 'release-approval-2')]), []);
+    assert.deepEqual(twoApproverProblems([a('approved', 'maint-a', 'release-approval'), a('rejected', 'maint-b', 'release-approval-2')]), [
+      'no approval in release-approval-2',
+    ]);
   });
 
   it('[CLI-T1.5.2-AC2] a canary is never tagged latest; a prerelease never latest; latest only when asked', () => {

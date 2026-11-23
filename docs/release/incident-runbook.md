@@ -54,8 +54,8 @@ Lower `MIN_CLI_VERSION` again (or unset it) only if the raise itself was the mis
 ## 4. Repository compromise
 
 1. Remove the attacker's access: revoke the maintainer's GitHub access and npm org membership.
-2. Rotate the GitHub organisation credentials and disable both release environments (`npm-release`,
-   `release-approval`) so nothing can publish.
+2. Rotate the GitHub organisation credentials and disable the release environments (`npm-release`,
+   `release-approval`, `release-approval-2`) so nothing can publish.
 3. Audit every published version through its provenance: `node scripts/verify-release.mjs @revition/cli <tag>` for
    each dist-tag, and the npm provenance of each version since the suspected start. Any version without provenance
    from `Revition/revition-cli` + `.github/workflows/release.yml` is compromised: do section 1 for it.

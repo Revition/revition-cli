@@ -10,8 +10,8 @@ attestation automatically.
 | Channel (dist-tag) | Version | When | Approval |
 | --- | --- | --- | --- |
 | `canary` | `X.Y.Z-canary.<sha7>` | every push to `main` | none (environment `npm-release`, branch `main` only) |
-| `next` | the version from the merged "Version Packages" PR | after that PR merges | `release-approval`: 2 maintainers + 10 min wait |
-| `latest` | a non-prerelease version, by hand (`workflow_dispatch`, channel `latest`) | when promoted | `release-approval`: 2 maintainers + 10 min wait |
+| `next` | the version from the merged "Version Packages" PR | after that PR merges | `release-approval` then `release-approval-2`: 2 different maintainers + 10 min wait |
+| `latest` | a non-prerelease version, by hand (`workflow_dispatch`, channel `latest`) | when promoted | `release-approval` then `release-approval-2`: 2 different maintainers + 10 min wait |
 
 A canary is never tagged `latest`, and a prerelease is never tagged `latest` (`scripts/release.mjs channel`).
 
@@ -23,14 +23,17 @@ A canary is never tagged `latest`, and a prerelease is never tagged `latest` (`s
 3. The same run opens or updates the "Version Packages" PR (`pnpm version-packages`: versions, each package's
    `CHANGELOG.md`, and the root `CHANGELOG.md`).
 4. When that PR merges, the new version is a stable candidate. The `approve-stable` job waits in the
-   `release-approval` environment until 2 maintainers approve; nothing is built or published before that.
+   `release-approval` environment, then `approve-stable-2` in `release-approval-2`; that job fails unless the two
+   approvals came from two different people (`scripts/two-approvers.mjs`). Nothing is built or published before that.
 5. `publish-stable` publishes to `next` (or `latest` when requested), verifies the result, creates a signed tag
    (sigstore, gitsign) and a GitHub Release with the notes, the SBOM and the tarballs.
 
 ## Repository settings this relies on
 
 - Environment `npm-release`: deployment branch policy `main` only. It holds no secrets.
-- Environment `release-approval`: required reviewers (2 maintainers), wait timer 10 minutes. It holds no secrets.
+- Environments `release-approval` (wait timer 10 minutes) and `release-approval-2`: required reviewers, "Prevent
+  self-review" on. A GitHub environment needs only one of its reviewers, so two environments plus the two-approvers
+  check make it two different people. They hold no secrets.
 - On npmjs.com, each published package has ONE trusted publisher: repository `Revition/revition-cli`, workflow
   `release.yml`, environment `npm-release`. A package must exist on npm before a trusted publisher can be added, so a
   new public package (for example `@revition/cli-core` or a plugin) is first reserved by a maintainer and bound, then
