@@ -133,7 +133,7 @@ Arguments:
 Flags:
 
 - `--force`: Overwrite a file that has local edits.
-- `-o, --output <value>`: The file to write (default: agents/<name>.agent.yaml).
+- `-o, --output <value>`: The file to write (default: `agents/<name>.agent.yaml`).
 
 Examples:
 
@@ -778,7 +778,7 @@ Flags:
 - `--app <value>`: The app id (default: the linked app).
 - `--dir <value>`: The project directory (default: the current directory).
 - `--dry-run`: Print the quote only: free, nothing runs.
-- `--suite <value>`: The suite: evals/<suite>.json (default: the only one).
+- `--suite <value>`: The suite: `evals/<suite>.json` (default: the only one).
 
 Examples:
 
@@ -969,7 +969,7 @@ Install a verified plugin (its signature, publisher and permissions are checked 
 
 Arguments:
 
-- `plugin` (required): The npm package name, optionally @<exact version>.
+- `plugin` (required): The npm package name, optionally `@<exact version>`.
 
 Examples:
 

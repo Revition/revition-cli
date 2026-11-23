@@ -46,6 +46,11 @@ export interface Hit {
   readonly authorization: string | undefined;
 }
 
+/** Whether a recorded Host header names exactly `name` (any port): an exact match, never a prefix one. */
+export function hostIs(host: string, name: string): boolean {
+  return host === name || host.startsWith(`${name}:`);
+}
+
 const json = (res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void => {
   res.writeHead(status, { 'content-type': 'application/json', date: new Date().toUTCString(), ...headers }).end(JSON.stringify(body));
 };
@@ -71,7 +76,7 @@ export async function startTlsMock(pki: Pki): Promise<{ port: number; log: Hit[]
     req.resume();
     req.on('end', () => {
       const hit = record(req, log);
-      if (hit.host.startsWith('registry.npmjs.org')) return json(res, 200, { 'dist-tags': { latest: '0.1.0' }, versions: {} });
+      if (hostIs(hit.host, 'registry.npmjs.org')) return json(res, 200, { 'dist-tags': { latest: '0.1.0' }, versions: {} });
       if (hit.method === 'HEAD') return void res.writeHead(200, { date: new Date().toUTCString() }).end();
       if (hit.path === '/api/v1/foundry/dev/me') {
         return (hit.authorization ?? '').startsWith('Bearer rvt_') ? json(res, 200, ME) : json(res, 401, { error: { code: 'CLI_SIGN_IN_REQUIRED', message: 'sign in' } });

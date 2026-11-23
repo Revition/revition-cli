@@ -2,7 +2,8 @@
 
 T2.5.2: the threats the Phase 2 commands touch (T04, T10, T11, T16 of the threat model, REVITION-CLI-PLAN §4.2) are
 re-checked against the new commands, and the UX against clig.dev and the accessibility rules. Status is VERIFIED (a
-test or evidence proves it), OPEN (proof still needed; the reason is named) or a finding. A high finding blocks 1.0.0. Mutant ids are per set: the evidence lives under
+test or evidence proves it), OPEN (proof still needed; the reason is named) or a finding. A high finding blocks
+1.0.0. Mutant ids are per set: the evidence lives under
 `FINAL-3H/CLI/<set>/mutants.json` (p2s1c = build / dev, p2s2 = apps / keys / secrets, p2s3 = ship path, p2s4 =
 observe and account).
 

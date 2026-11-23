@@ -10,6 +10,9 @@ import { CLI_BIN, runCli, type Spawned } from './test-fixtures/spawn-cli.js';
 
 const TOKEN_SHAPES = /rvs_[A-Za-z0-9]{20,}|rvt_[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{10,}\.|rt-\d+|"refresh_token"/;
 
+/** Every regex metacharacter escaped, so a host name is matched literally. */
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+
 async function envFor(mock: MockAuth): Promise<Record<string, string> & { TEST_DIRS: string }> {
   // The real HOME stays (macOS finds the login keychain through it); every CLI directory is redirected via XDG_*.
   const home = await mkdtemp(join(tmpdir(), 'revlogin-'));
@@ -74,7 +77,7 @@ describe('T1.3.1 / T1.3.2 / T1.3.4 / T1.3.6 login, logout and CI auth through th
     try {
       const { run, pages } = await browserLogin(mock, env);
       assert.equal(run.code, 0, run.stderr);
-      assert.match(run.stdout, new RegExp(`Logged in as dev@e2e.test \\(org_e2e\\) on ${mock.apiHost.replace(/\./g, '\\.')}\\. Session sess-1`));
+      assert.match(run.stdout, new RegExp(`Logged in as dev@e2e.test \\(org_e2e\\) on ${escapeRegExp(mock.apiHost)}\\. Session sess-1`));
       assert.equal((pages[0] as { status: number }).status, 400, 'wrong state');
       assert.equal((pages[1] as { status: number }).status, 400, 'wrong Host header');
       assert.equal((pages[2] as { status: number }).status, 200, 'the real callback');

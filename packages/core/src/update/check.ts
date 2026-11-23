@@ -22,7 +22,10 @@ export function channelOf(version: string): Channel {
 }
 
 export function registryBase(env: Readonly<Record<string, string | undefined>>): string {
-  return (env['npm_config_registry'] ?? 'https://registry.npmjs.org').replace(/\/+$/, '');
+  // Trailing slashes off by a loop, not a /\/+$/ regex: the value comes from the environment (CodeQL polynomial ReDoS).
+  let base = env['npm_config_registry'] ?? 'https://registry.npmjs.org';
+  while (base.endsWith('/')) base = base.slice(0, -1);
+  return base;
 }
 
 /** When the notifier may run and print: never with --json, in CI, on a non-TTY stderr, or when turned off. PURE. */

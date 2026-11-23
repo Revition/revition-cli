@@ -26,8 +26,8 @@
   "dependencies": {
     "@oclif/core": "4.11.14",
     "@revition/cli-core": "workspace:*",
-    "ajv": "8.17.1",
-    "yaml": "2.8.1"
+    "ajv": "8.18.0",
+    "yaml": "2.8.4"
   },
   "devDependencies": {
     "@types/node": "25.5.0",

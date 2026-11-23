@@ -18,7 +18,7 @@ import { after, before, describe, it } from 'node:test';
 
 import { CLI_BIN } from '../src/test-fixtures/spawn-cli.js';
 
-import { baseEnv, closedPort, makePki, run, startProxy, startStatusMock, startTlsMock, type Pki } from './l3-rig.js';
+import { baseEnv, closedPort, hostIs, makePki, run, startProxy, startStatusMock, startTlsMock, type Pki } from './l3-rig.js';
 
 const PAT = `rvt_${'L'.repeat(40)}`;
 const NODE = process.execPath;
@@ -245,7 +245,7 @@ describe('L3: transport through a real proxy and a real TLS server (T1.1.5)', ()
     assert.equal(envelope(ok.stdout).ok, true);
     assert.ok(proxy.events.slice(before).some((e) => e.kind === 'connect' && e.target === 'l3.revition.com:443'));
     assert.ok(
-      tls.log.slice(tlsMark).some((h) => h.path === '/api/v1/foundry/dev/me' && h.host.startsWith('l3.revition.com')),
+      tls.log.slice(tlsMark).some((h) => h.path === '/api/v1/foundry/dev/me' && hostIs(h.host, 'l3.revition.com')),
       'the call crossed the proxy into the TLS server, trusted only through NODE_EXTRA_CA_CERTS'
     );
     // NO_PROXY: a loopback platform is reached directly; without NO_PROXY the same call goes through the proxy.
@@ -285,7 +285,7 @@ describe('L3: transport through a real proxy and a real TLS server (T1.1.5)', ()
     assert.equal(r.code === 0 || r.code === 1, true, r.stderr);
     const hits = tls.log.slice(before);
     const me = hits.filter((h) => h.path === '/api/v1/foundry/dev/me');
-    const registry = hits.filter((h) => h.host.startsWith('registry.npmjs.org'));
+    const registry = hits.filter((h) => hostIs(h.host, 'registry.npmjs.org'));
     assert.ok(me.length > 0 && me.every((h) => (h.authorization ?? '').startsWith('Bearer rvt_')), 'the profile host got the token');
     assert.ok(registry.length > 0, 'the registry probe ran');
     assert.ok(registry.every((h) => h.authorization === undefined), 'the registry never got a token');

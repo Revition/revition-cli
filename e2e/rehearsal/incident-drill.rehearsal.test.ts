@@ -165,7 +165,10 @@ describe('dress rehearsal: the incident drill (runbook steps 1 and 2), $0', () =
       const cacheDir = mkdtempSync(join(tmpdir(), 'drill-cache-'));
       const c = await runUpdateCheck({ installedVersion: BAD, cacheDir, env: { npm_config_registry: reg.url }, now: Date.parse('2026-11-19T00:00:00Z') });
       const notice = updateNotice(c, BAD) ?? '';
-      assert.match(notice, new RegExp(`warn revition ${BAD.replace(/\./gu, '\\.')} is deprecated: ${REASON.replace(/[.;]/gu, '.')}`, 'u'));
+      // The version literally; the reason literally except that its . and ; may be any character (as before).
+      const literal = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+      const reason = literal(REASON).replace(/\\\.|;/gu, '.');
+      assert.match(notice, new RegExp(`warn revition ${literal(BAD)} is deprecated: ${reason}`, 'u'));
 
       // Restore (the runbook's undo line), and the warning goes away.
       assert.equal((await run(['deprecate', `@revition/cli@${BAD}`, ''])).code, 0, steps.at(-1)?.out);

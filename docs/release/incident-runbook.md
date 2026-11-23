@@ -31,8 +31,8 @@ To undo a drill or a mistaken deprecation: `npm deprecate @revition/cli@<version
    until the fix ships.
 2. Ship a patch release through the normal release workflow (`docs/release/process.md`).
 3. Force the upgrade: the platform raises `MIN_CLI_VERSION` on the Dev API to the patched version. Every older CLI
-   then gets HTTP 426 and exits 10 with the platform's "no longer supported" message and `revition upgrade`. This is the security exception
-   to the 30-day notice in `docs/policy/deprecation.md`.
+   then gets HTTP 426 and exits 10 with the platform's "no longer supported" message and `revition upgrade`. This
+   is the security exception to the 30-day notice in `docs/policy/deprecation.md`.
 4. Publish the advisory and a notice on developer.revition.com. Record it in [advisories](../security/advisories.md).
 
 Check the 426 with an older CLI, signed in as usual (it must exit 10 with "no longer supported"):

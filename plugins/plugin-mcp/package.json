@@ -28,10 +28,11 @@
     "@revition/cli-core": "workspace:*"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.17.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@types/node": "25.5.0",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "zod": "4.6.7"
   },
   "oclif": {
     "commands": {

@@ -49,7 +49,10 @@ describe('Set 4 lifecycle through the real CLI', () => {
     const saved = { ...process.env };
     Object.assign(process.env, d, { npm_config_registry: `http://127.0.0.1:${(slow.address() as AddressInfo).port}` });
     try {
-      const { scheduleUpdateCheck } = (await import('../dist/update-notifier.js')) as typeof import('./update-notifier.js');
+      // The BUILT module (what ships), named through a variable so the typecheck, which runs before the build, never
+      // resolves dist; the type is the source module's.
+      const builtModule = '../dist/update-notifier.js';
+      const { scheduleUpdateCheck } = (await import(builtModule)) as typeof import('./update-notifier.js');
       const started = performance.now();
       assert.equal(await scheduleUpdateCheck([], '0.1.0', process.env, true), true);
       const spent = performance.now() - started;

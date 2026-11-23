@@ -25,7 +25,7 @@ journey token is revoked last.
 | --- | --- | --- |
 | 1 | `claude mcp add revition -- revition mcp serve` (a cli:read token in the server env, or a signed-in profile) | the server connects |
 | 2 | in Claude Code: "list my Revition apps" | `revition_apps_list` called; the apps shown |
-| 3 | in Claude Code: "show the logs of run <id> of <app>" | `revition_logs` called; the run's lines |
+| 3 | in Claude Code: "show the logs of run `<id>` of `<app>`" | `revition_logs` called; the run's lines |
 | 4 | the developer audit (`revition audit --since 1h`) | the calls, with `client=mcp` (question Q4 / Q6) |
 
 The automated half (`e2e/phase3.e2e.ts`, "mcp") checks the same server over raw JSON-RPC: no destructive tool listed,

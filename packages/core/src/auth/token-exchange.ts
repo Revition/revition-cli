@@ -23,7 +23,9 @@ export const DEFAULT_AUTH: { readonly issuerBase: string; readonly clientId: str
 };
 
 export function authConfigFor(host: string, env: Readonly<Record<string, string | undefined>>): AuthConfig {
-  const issuerBase = (env['REVITION_AUTH_ISSUER'] ?? DEFAULT_AUTH.issuerBase).replace(/\/+$/, '');
+  // Trailing slashes off by a loop, not a /\/+$/ regex: the value comes from the environment (CodeQL polynomial ReDoS).
+  let issuerBase = env['REVITION_AUTH_ISSUER'] ?? DEFAULT_AUTH.issuerBase;
+  while (issuerBase.endsWith('/')) issuerBase = issuerBase.slice(0, -1);
   const u = new URL(issuerBase);
   const loopback = u.hostname === '127.0.0.1' || u.hostname === 'localhost';
   if (u.protocol !== 'https:' && !(u.protocol === 'http:' && loopback)) {

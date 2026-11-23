@@ -58,7 +58,7 @@ async function getJson(url) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [name, channel = 'latest'] = process.argv.slice(2);
-  const enc = encodeURIComponent(name).replace('%40', '@');
+  const enc = encodeURIComponent(name).replace(/^%40/u, '@');
   const doc = await getJson(`https://registry.npmjs.org/${enc}`);
   const version = doc['dist-tags']?.[channel];
   if (typeof version !== 'string') throw new Error(`${name} has no ${channel} dist-tag`);

@@ -26,7 +26,7 @@ function job(text, name) {
 function attestation({ repository = EXPECTED.repository, path = EXPECTED.workflowPath, name = '@revition/cli', version = '0.2.0' } = {}) {
   const statement = {
     _type: 'https://in-toto.io/Statement/v1',
-    subject: [{ name: `pkg:npm/${encodeURIComponent(name).replace('%2F', '/')}@${version}`, digest: { sha512: 'x' } }],
+    subject: [{ name: `pkg:npm/${encodeURIComponent(name).replaceAll('%2F', '/')}@${version}`, digest: { sha512: 'x' } }],
     predicateType: SLSA_V1,
     predicate: { buildDefinition: { externalParameters: { workflow: { ref: 'refs/heads/main', repository, path } } } },
   };

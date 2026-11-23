@@ -58,7 +58,7 @@ export function npmRegistry(env: Readonly<Record<string, string | undefined>> = 
   return {
     async version(name, range) {
       assertPluginName(name);
-      const r = await get(`${NPM_REGISTRY}/${name.replace('/', '%2f')}`, env, 'application/json');
+      const r = await get(`${NPM_REGISTRY}/${name.replaceAll('/', '%2f')}`, env, 'application/json');
       if (r.status === 404) throw notFound(name);
       if (r.status !== 200) throw new RevitionCliError({ code: 'PLUGIN_REGISTRY_ERROR', message: `The npm registry answered ${r.status}.` }, EXIT.server);
       const doc = JSON.parse(r.body.toString('utf8')) as {
@@ -72,7 +72,7 @@ export function npmRegistry(env: Readonly<Record<string, string | undefined>> = 
       return { name: meta.name, version: meta.version, publishedAt: doc.time?.[v] ?? new Date(0).toISOString(), dist: meta.dist };
     },
     async attestations(name, version) {
-      const r = await get(`${NPM_REGISTRY}/-/npm/v1/attestations/${name.replace('/', '%2f')}@${version}`, env, 'application/json');
+      const r = await get(`${NPM_REGISTRY}/-/npm/v1/attestations/${name.replaceAll('/', '%2f')}@${version}`, env, 'application/json');
       if (r.status === 404) return null;
       if (r.status !== 200) throw new RevitionCliError({ code: 'PLUGIN_REGISTRY_ERROR', message: `The npm registry answered ${r.status}.` }, EXIT.server);
       return (JSON.parse(r.body.toString('utf8')) as { attestations?: Attestation[] }).attestations ?? null;

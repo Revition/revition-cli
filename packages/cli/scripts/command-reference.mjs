@@ -16,11 +16,25 @@ const visibleFlags = (flags, global) =>
     .filter((f) => !f.hidden && (f.helpGroup === 'GLOBAL') === global)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+/**
+ * Prose from the command metadata, safe as Markdown: a placeholder such as `agents/<name>.agent.yaml` or
+ * `@<exact version>` is shown as code, so a renderer never takes `<name>` for an HTML element (markdownlint MD033) and
+ * the reader sees it as a value to fill in. Text already in backticks is left alone.
+ */
+export function prose(text) {
+  return (text ?? '')
+    .split(/(`[^`]*`)/u)
+    .map((part) =>
+      part.startsWith('`') ? part : part.replace(/([\w/@-]*<[^<>`\n]+>(?:[\w/-]|\.(?=\w))*)/gu, '`$1`')
+    )
+    .join('');
+}
+
 function flagLine(f) {
   const short = f.char === undefined ? '' : `-${f.char}, `;
   const value = f.type === 'option' ? (f.options === undefined ? ' <value>' : ` <${f.options.join('|')}>`) : '';
   const req = f.required === true ? ' (required)' : '';
-  return `- \`${short}--${f.name}${value}\`${req}: ${f.description ?? ''}`.trimEnd();
+  return `- \`${short}--${f.name}${value}\`${req}: ${prose(f.description)}`.trimEnd();
 }
 
 /** The reference text for a loaded oclif config. PURE given the commands. */
@@ -34,10 +48,10 @@ export function renderReference(commands, bin) {
   ];
   for (const c of visible) {
     const name = c.id.replace(/:/g, ' ');
-    lines.push(`## \`${bin} ${name}\``, '', c.summary ?? (c.description ?? '').split('\n')[0] ?? '', '');
+    lines.push(`## \`${bin} ${name}\``, '', prose(c.summary ?? (c.description ?? '').split('\n')[0]), '');
     const args = Object.values(c.args ?? {});
     if (args.length > 0) {
-      lines.push('Arguments:', '', ...args.map((a) => `- \`${a.name}\`${a.required ? ' (required)' : ''}: ${a.description ?? ''}`.trimEnd()), '');
+      lines.push('Arguments:', '', ...args.map((a) => `- \`${a.name}\`${a.required ? ' (required)' : ''}: ${prose(a.description)}`.trimEnd()), '');
     }
     const flags = visibleFlags(c.flags, false);
     if (flags.length > 0) lines.push('Flags:', '', ...flags.map(flagLine), '');
