@@ -60,4 +60,34 @@ describe('T1.2.1 the Auth0 "Revition CLI" application, read from the live tenant
     assert.deepEqual([...letters].filter((c) => !BASE20.includes(c)), []);
     assert.ok(Number.isInteger(body.expires_in) && body.expires_in > 0);
   });
+  // REVITION-CLI-PLAN.md:1026 "grant types: Authorization Code, Refresh Token, Device Code". A grant type the client does
+  // not have answers `unauthorized_client`; one it has gets past that check and refuses the bogus code itself
+  // (`invalid_grant` / `expired_token`). Bogus values only: nothing is issued, nothing changes.
+  it('[CLI-T1.2.1-AC1] exactly the listed grant types are enabled: Authorization Code, Refresh Token and Device Code pass the grant check', async () => {
+    const token = async (body) => {
+      const res = await globalThis.fetch(`${DOMAIN}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ client_id: CLIENT, ...body }),
+      });
+      const json = await res.json();
+      assert.equal(typeof json.access_token, 'undefined', 'no token issued');
+      return String(json.error ?? '');
+    };
+    const code = await token({ grant_type: 'authorization_code', code: 'probe-not-a-code', redirect_uri: 'http://127.0.0.1:8976/callback', code_verifier: 'x'.repeat(43) });
+    assert.notEqual(code, 'unauthorized_client', 'Authorization Code is enabled');
+    assert.match(code, /^(invalid_grant|invalid_request)$/u, `authorization_code: ${code}`);
+    const refresh = await token({ grant_type: 'refresh_token', refresh_token: 'probe-not-a-token' });
+    assert.notEqual(refresh, 'unauthorized_client', 'Refresh Token is enabled');
+    assert.match(refresh, /^(invalid_grant|invalid_request)$/u, `refresh_token: ${refresh}`);
+    const device = await token({ grant_type: 'urn:ietf:params:oauth:grant-type:device_code', device_code: 'probe-not-a-device-code' });
+    assert.notEqual(device, 'unauthorized_client', 'Device Code is enabled');
+    assert.match(device, /^(invalid_grant|expired_token|invalid_request)$/u, `device_code: ${device}`);
+  });
+
+  // The rest of the listed settings are not observable from outside: OIDC Conformant, the non-verifiable callback
+  // confirmation, rotation ON / reuse 0 s / 30-day absolute / 7-day inactivity, and the API's "Allow Offline Access".
+  // Their read-back is the plan's own (REVITION-CLI-PLAN.md:1037-1039): a screenshot of each settings panel plus a
+  // decoded real CLI token, recorded by the dashboard owner (Documentation/auth0-cli-setup.md, platform repo).
 });
+

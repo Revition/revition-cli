@@ -66,7 +66,8 @@ describe('dress rehearsal: the staging journeys, unchanged, against the scripted
       REVITION_E2E_PAID_OK: '1',
       REVITION_E2E_EVAL_QUOTE: 'evq_rehearsalrehearsalrehearsalrehe',
     });
-    assertClean(r, 9);
+    // 10: the `test` step is a real case now (CLI-T2.5.1-AC1), no longer a skip.
+    assertClean(r, 10);
     const order = r.platform.calls.map((c) => `${c.method} ${c.path.replace(/^\/api\/v1\/foundry/u, '')}`);
     assert.ok(order.indexOf('GET /dev/apps/dapp_rehearsal/evals/quote') < order.indexOf('POST /dev/apps/dapp_rehearsal/evals'), 'quoted before the eval fires');
     assert.ok(order.includes('DELETE /dev/projects/dproj_rehearsal/sandbox'), 'the sandbox is deleted');

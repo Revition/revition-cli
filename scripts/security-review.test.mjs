@@ -96,6 +96,26 @@ describe('T1.6.2 / T3.4.2 security reviews', () => {
     assert.deepEqual(openBlocking(tableUnder(md, 'Findings')), []);
   });
 
+  // REVITION-CLI-PLAN.md:2559 (the Phase 2 review covers T04 / T10 / T11 / T16) and :2567 (AC1 "All T-ids touched are
+  // verified"): each touched T-id is VERIFIED; a part only staging can prove may stay open if it names what it waits
+  // for; every repo file cited as evidence exists.
+  it('[CLI-T2.5.2-AC1] Phase 2: every touched T-id (T04 / T10 / T11 / T16) is VERIFIED; its cited evidence exists', () => {
+    const t = tableUnder(doc('review-phase2.md'), 'Threats');
+    assert.deepEqual(t.map((r) => r[0]), ['T04', 'T10', 'T11', 'T16']);
+    for (const row of t) {
+      const [id] = row;
+      const evidence = row[row.length - 2] ?? '';
+      const status = row[row.length - 1] ?? '';
+      assert.match(status, /^VERIFIED\b/u, `${id} is verified`);
+      for (const part of status.split(/;\s*/u).filter((p) => p.startsWith('OPEN'))) {
+        assert.match(part, /^OPEN: \S.{8,}/u, `${id}: an open part names what it waits for`);
+        assert.match(part, /staging|live|probe/u, `${id}: only a live part may stay open`);
+      }
+      const cited = citedRepoFiles(evidence);
+      for (const p of cited) assert.ok(resolves(p), `${id}: the cited evidence ${p} exists`);
+    }
+  });
+
   it('[CLI-T2.5.2-AC3] Phase 2 UX checklist: the five clig.dev / a11y checks VERIFIED; only the OS-run parts open; every finding resolved or low', () => {
     const md = doc('review-phase2.md');
     const ux = tableUnder(md, 'UX checklist (clig.dev, accessibility)');

@@ -102,7 +102,15 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     assert.ok(build.code === 0 || build.code === 12, `build: ${build.stderr}`);
   });
 
-  it('[CLI-T2.5.1-AC1] test: blocked on Q1 (the offline SDK reference and grants)', { skip: 'Q1 (QUESTIONS-FOR-USER.md): `revition test` is not built' }, () => undefined);
+  // REVITION-CLI-PLAN.md:2540 step "test": `revition test` is built (T2.1.3); the project's own tests run locally,
+  // offline, and must pass (the skip that said it was not built was stale).
+  it('[CLI-T2.5.1-AC1] test: the project tests run locally (offline) and pass', async () => {
+    const t = await cli(['test', '--json'], { cwd: PROJECT });
+    assert.equal(t.code, 0, `${t.stdout}${t.stderr}`);
+    const r = data<{ passed: number; failed: number }>(t);
+    assert.ok(r.passed >= 1, 'at least one test case ran');
+    assert.equal(r.failed, 0);
+  });
 
   it('[CLI-T2.5.1-AC1] dev --sandbox: one run, then the sandbox is deleted (metered: needs REVITION_E2E_PAID_OK=1)', { skip: E['REVITION_E2E_PAID_OK'] === '1' ? false : 'metered: not approved for this run' }, async () => {
     const dev = await cli(['dev', '--sandbox', '--once', '--yes', '--json'], { cwd: PROJECT });

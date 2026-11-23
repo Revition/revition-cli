@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "node --test \"scripts/*.test.mjs\" && node --import tsx --test \"legacy-parity/*.test.mjs\" && pnpm -r --if-present run test",
+    "test": "node scripts/test-all.mjs",
     "build": "pnpm -r --if-present run build",
     "check:actions": "node scripts/check-pinned-actions.mjs",
     "check:changesets": "node scripts/check-changesets.mjs",

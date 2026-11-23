@@ -98,7 +98,8 @@ describe('Set 4 lifecycle through the real CLI', () => {
   it('[CLI-T1.4.2-AC4] [CLI-T1.4.2-AC3] after opting in, show-last equals exactly the payload the platform received (flag names only)', async () => {
     const mock = await startMockAuth();
     try {
-      const env = { ...(await dirs()), REVITION_HOST: mock.apiHost, REVITION_TOKEN: PAT };
+      // This run opts in on purpose (the suite-wide telemetry spy, CLI-T1.4.2-AC1, counts it as allowed).
+      const env = { ...(await dirs()), REVITION_HOST: mock.apiHost, REVITION_TOKEN: PAT, REVITION_TEST_TELEMETRY_OPTIN: '1' };
       assert.equal((await runCli(CLI_BIN, ['telemetry', 'enable'], { env })).code, 0);
       assert.equal((await runCli(CLI_BIN, ['whoami', '--profile', 'default'], { env })).code, 0);
       const postedEvents = (): Array<Record<string, unknown>> =>
