@@ -86,7 +86,7 @@ describe('T1.5.1 changesets', () => {
     writeFileSync(join(dir, '.changeset', 'brave-cat.md'), MINOR);
     writeFileSync(join(dir, '.changeset', 'calm-owl.md'), '---\n"@revition/cli-core": patch\n---\n\nFix a retry.\n');
     const before = JSON.parse(readFileSync(join(dir, 'packages', 'cli', 'package.json'), 'utf8')).version;
-    execFileSync(join(ROOT, 'node_modules', '.bin', 'changeset'), ['version'], { cwd: dir, encoding: 'utf8' });
+    execFileSync(join(ROOT, 'node_modules', '.bin', 'changeset'), ['version'], { cwd: dir, encoding: 'utf8', shell: process.platform === 'win32' });
     execFileSync(process.execPath, [NOTES, '2026-11-18'], { cwd: dir, encoding: 'utf8' });
 
     const cli = JSON.parse(readFileSync(join(dir, 'packages', 'cli', 'package.json'), 'utf8'));

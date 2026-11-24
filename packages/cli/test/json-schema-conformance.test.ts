@@ -54,6 +54,9 @@ describe('T3.2.1 AC1 - the core commands: their --json output conforms to the pu
           REVITION_TOKEN: PAT,
           REVITION_NO_UPDATE_CHECK: '1',
           DO_NOT_TRACK: '',
+          // `telemetry enable` IS the opt-in: its own run is counted and sent (T1.4.2), so it declares the opt-in to the
+          // suite-wide telemetry spy (CLI-T1.4.2-AC1), as lifecycle-e2e does. Every other case stays undeclared.
+          ...(argv[0] === 'telemetry' && argv[1] === 'enable' ? { REVITION_TEST_TELEMETRY_OPTIN: '1' } : {}),
         };
         const r = await runCli(CLI_BIN, [...argv, '--json'], { env });
         assert.equal(r.code, 0, r.stdout + r.stderr);

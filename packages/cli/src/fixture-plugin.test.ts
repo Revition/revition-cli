@@ -53,12 +53,14 @@ describe('T1.1.1 a command is a module: the fixture plugin', () => {
   });
 
   it('[CLI-T1.1.1-AC6] startup within budget: --version and --help under 300 ms (this OS; the CI matrix runs the others)', async () => {
-    // Warm the module cache once, then measure the median of 5 runs of each.
-    await runCli(CLI_BIN, ['--version']);
+    // Warm the module cache once, then measure the median of 5 runs of each. The CLI is timed as a user runs it: the
+    // suite-wide telemetry spy (a TEST-ONLY preload in NODE_OPTIONS, scripts/test-all.mjs) is left out of these runs.
+    const env = { NODE_OPTIONS: (process.env['NODE_OPTIONS'] ?? '').replace(/--import=\S*telemetry-spy\.mjs/u, '').trim() };
+    await runCli(CLI_BIN, ['--version'], { env });
     for (const args of [['--version'], ['--help']]) {
       const runs: number[] = [];
       for (let i = 0; i < 5; i++) {
-        const r = await runCli(CLI_BIN, args);
+        const r = await runCli(CLI_BIN, args, { env });
         assert.equal(r.code, 0, r.stderr);
         runs.push(r.ms);
       }

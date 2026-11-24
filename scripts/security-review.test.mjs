@@ -60,7 +60,7 @@ describe('T1.6.2 / T3.4.2 security reviews', () => {
   });
 
   it('[CLI-T1.6.2-AC2] [CLI-T3.4.2-AC2] the dependency audit: no high or critical advisory in the production tree', () => {
-    const r = spawnSync('pnpm', ['audit', '--prod', '--json'], { cwd: ROOT, encoding: 'utf8', timeout: 120_000 });
+    const r = spawnSync('pnpm', ['audit', '--prod', '--json'], { cwd: ROOT, encoding: 'utf8', timeout: 120_000, shell: process.platform === 'win32' });
     const out = JSON.parse(r.stdout);
     const v = out.metadata?.vulnerabilities ?? {};
     assert.equal(typeof v.high, 'number', `pnpm audit answered (${r.stderr.slice(0, 200)})`);

@@ -66,9 +66,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const problems = [...provenanceProblems(att.attestations, { name, version }), ...distTagProblems(doc['dist-tags'])];
   const dir = mkdtempSync(join(tmpdir(), 'verify-release-'));
   writeFileSync(join(dir, 'package.json'), '{"name":"verify-release","private":true}\n');
-  execFileSync('npm', ['install', '--ignore-scripts', '--no-fund', '--no-audit', `${name}@${version}`], { cwd: dir, stdio: 'inherit' });
+  execFileSync('npm', ['install', '--ignore-scripts', '--no-fund', '--no-audit', `${name}@${version}`], { cwd: dir, stdio: 'inherit', shell: process.platform === 'win32' });
   try {
-    execFileSync('npm', ['audit', 'signatures'], { cwd: dir, stdio: 'inherit' });
+    execFileSync('npm', ['audit', 'signatures'], { cwd: dir, stdio: 'inherit', shell: process.platform === 'win32' });
   } catch {
     problems.push(`npm audit signatures failed for ${name}@${version}`);
   }

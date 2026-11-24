@@ -25,7 +25,7 @@ function workspaceWith(dep) {
   write(join(root, 'vendor', 'dep', 'package.json'), JSON.stringify(dep));
   write(join(root, 'vendor', 'dep', 'index.js'), 'module.exports = 1;\n');
   write(join(root, 'packages', 'app', 'package.json'), JSON.stringify({ name: '@x/app', version: '1.0.0', dependencies: { [dep.name]: 'file:../../vendor/dep' } }));
-  execFileSync('pnpm', ['install', '--ignore-scripts', '--offline', '--silent'], { cwd: root, stdio: 'ignore' });
+  execFileSync('pnpm', ['install', '--ignore-scripts', '--offline', '--silent'], { cwd: root, stdio: 'ignore', shell: process.platform === 'win32' });
   return root;
 }
 

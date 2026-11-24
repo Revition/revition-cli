@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -37,6 +37,27 @@ function fake(dir, name, code) {
   chmodSync(p, 0o755);
 }
 
+/**
+ * The system tools WITHOUT gh and cosign: a CI runner ships gh in /usr/bin (ubuntu-latest), which made "no gh" untrue.
+ * One directory of links to every system executable except those two; the fakes in `tools` stand in when a case asks.
+ */
+function systemBin(root) {
+  const dir = join(root, 'sysbin');
+  mkdirSync(dir);
+  for (const d of ['/usr/bin', '/bin', '/usr/sbin', '/sbin']) {
+    if (!existsSync(d)) continue;
+    for (const n of readdirSync(d)) {
+      if (n === 'gh' || n === 'cosign' || existsSync(join(dir, n))) continue;
+      try {
+        symlinkSync(join(d, n), join(dir, n));
+      } catch {
+        // an unreadable entry is not a tool the script needs
+      }
+    }
+  }
+  return dir;
+}
+
 async function install({ tamper = false, cosign = null, gh = null, base = null }) {
   const sums = `${createHash('sha256').update(BINARY).digest('hex')}  ${ASSET}\n`;
   const b = await bucket({ [ASSET]: tamper ? Buffer.concat([BINARY, Buffer.from('#')]) : BINARY, SHA256SUMS: sums, 'SHA256SUMS.sigstore.json': '{"mediaType":"x"}' });
@@ -49,7 +70,7 @@ async function install({ tamper = false, cosign = null, gh = null, base = null }
   // Async spawn: the loopback bucket lives in THIS process, so a blocking spawnSync would starve it and curl would hang.
   const r = await new Promise((resolve) => {
     const child = spawn('sh', [SCRIPT], {
-      env: { PATH: `${tools}:/usr/bin:/bin:/usr/sbin:/sbin`, HOME: root, REVITION_INSTALL_DIR: prefix, REVITION_INSTALL_BASE: base ?? b.base },
+      env: { PATH: `${tools}:${systemBin(root)}`, HOME: root, REVITION_INSTALL_DIR: prefix, REVITION_INSTALL_BASE: base ?? b.base },
     });
     let stdout = '';
     let stderr = '';

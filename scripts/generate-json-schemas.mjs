@@ -127,9 +127,10 @@ export function generateSchemas(root = ROOT) {
     const cfg = ts.getParsedCommandLineOfConfigFile(cfgPath, {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined });
     const program = ts.createProgram(cfg.fileNames, cfg.options);
     const checker = program.getTypeChecker();
-    const commandsDir = join(root, pkg, 'src', 'commands');
+    // TypeScript names files with forward slashes on every OS; path.join uses backslashes on Windows.
+    const commandsDir = join(root, pkg, 'src', 'commands').replace(/\\/g, '/');
     for (const sf of program.getSourceFiles()) {
-      if (!sf.fileName.startsWith(commandsDir) || sf.fileName.endsWith('.test.ts')) continue;
+      if (!sf.fileName.replace(/\\/g, '/').startsWith(commandsDir) || sf.fileName.endsWith('.test.ts')) continue;
       ts.forEachChild(sf, (node) => {
         if (!ts.isClassDeclaration(node) || !node.heritageClauses) return;
         const ext = node.heritageClauses.flatMap((h) => h.types).find((t) => t.expression.getText() === 'RevitionCommand');

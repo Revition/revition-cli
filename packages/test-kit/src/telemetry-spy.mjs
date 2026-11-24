@@ -15,6 +15,7 @@ if (LOG) {
     const path = String(message?.request?.path ?? '').split('?')[0];
     if (!path.endsWith(TELEMETRY_PATH)) return;
     const optIn = process.env.REVITION_TEST_TELEMETRY_OPTIN === '1';
-    appendFileSync(LOG, `${JSON.stringify({ path, optIn, pid: process.pid })}\n`);
+    // argv + cwd + the config dir name the offending run when the verdict fails (the CI log shows them).
+    appendFileSync(LOG, `${JSON.stringify({ path, optIn, pid: process.pid, argv: process.argv.slice(1).join(' '), cwd: process.cwd(), xdgConfig: process.env.XDG_CONFIG_HOME ?? null })}\n`);
   });
 }

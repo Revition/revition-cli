@@ -43,7 +43,7 @@ export function budgetProblems(packages, max = MAX_DIRECT_DEPS) {
 }
 
 export function dryRunPack(dir) {
-  const out = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const out = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], shell: process.platform === 'win32' });
   return JSON.parse(out)[0];
 }
 

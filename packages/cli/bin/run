@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 // The `revition` executable. ESM (the package is "type": "module"); oclif loads the compiled commands from dist/.
-import { execute } from '@oclif/core';
+// Startup budget (REVITION-CLI-PLAN.md:755, T1.1.1 AC6): Node's on-disk compile cache reuses the compiled bytecode
+// across runs. It must be enabled before the CLI's modules load, so oclif is imported after it.
+import module from 'node:module';
 
+module.enableCompileCache?.();
+const { execute } = await import('@oclif/core');
 await execute({ dir: import.meta.url });

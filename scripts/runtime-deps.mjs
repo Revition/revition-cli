@@ -20,7 +20,7 @@ export function shippedPackages(root) {
 export function runtimeClosure(root) {
   const seen = new Map();
   for (const p of shippedPackages(root)) {
-    const out = execFileSync('pnpm', ['licenses', 'list', '--prod', '--json'], { cwd: p.dir, encoding: 'utf8' });
+    const out = execFileSync('pnpm', ['licenses', 'list', '--prod', '--json'], { cwd: p.dir, encoding: 'utf8', shell: process.platform === 'win32' });
     const byLicense = out.trim() === '' ? {} : JSON.parse(out);
     for (const [license, entries] of Object.entries(byLicense)) {
       for (const e of entries) {

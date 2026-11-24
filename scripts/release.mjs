@@ -56,7 +56,7 @@ export function packPublic(root, out) {
   const manifest = [];
   for (const p of workspacePackages(root).filter((x) => x.json.private !== true)) {
     const before = new Set(readdirSync(out));
-    execFileSync('pnpm', ['pack', '--pack-destination', out], { cwd: p.dir, stdio: ['ignore', 'ignore', 'inherit'] });
+    execFileSync('pnpm', ['pack', '--pack-destination', out], { cwd: p.dir, stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' });
     const file = readdirSync(out).find((f) => f.endsWith('.tgz') && !before.has(f));
     if (file === undefined) throw new Error(`pnpm pack produced nothing for ${p.json.name}`);
     manifest.push({ name: p.json.name, version: p.json.version, file });
