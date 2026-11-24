@@ -7,7 +7,7 @@
  *   REVITION_E2E_HOST            the platform host                                                         required
  *   REVITION_E2E_TOKEN           a cli:read + cli:agents PAT of the dedicated E2E user                     required
  *   REVITION_E2E_AGENT           the dedicated test agent (deployment id) the journey edits                 required
- *   REVITION_E2E_TESTS_QUOTE     the quote id the user approved: `agents test` runs only when the fresh quote matches
+ *   REVITION_E2E_PAID_OK=1       run the quoted `agents test` (the authored case); REVITION_E2E_TESTS_CAP_USD caps the quote (0.20)
  *   REVITION_CLI_BIN             the CLI entry (default packages/cli/bin/run)
  *
  * Paid steps are quoted and approved before they run, and the spend is compared with the quote (AC2). The draft edit
@@ -21,11 +21,16 @@ import { join, resolve } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { definitionText, parseDefinitionText } from '../plugins/plugin-agents/src/format.js';
+
 const E = process.env;
 const HOST = E['REVITION_E2E_HOST'] ?? '';
 const TOKEN = E['REVITION_E2E_TOKEN'] ?? '';
 const AGENT = E['REVITION_E2E_AGENT'] ?? '';
-const APPROVED_QUOTE = E['REVITION_E2E_TESTS_QUOTE'] ?? '';
+const PAID_OK = E['REVITION_E2E_PAID_OK'] === '1';
+const CAP_USD = Number(E['REVITION_E2E_TESTS_CAP_USD'] ?? '0.20');
+/** The one model-backed case the journey authors on its own draft (ruling #279), removed by the revert in after(). */
+const JOURNEY_CASE = { id: 'cli-journey-paid', name: 'CLI journey paid case', type: 'agent_behavior', input: 'Reply with the single word ready.', expected: 'ready', assertion: 'contains' };
 const BIN = E['REVITION_CLI_BIN'] ?? fileURLToPath(new URL('../packages/cli/bin/run', import.meta.url));
 const SKIP = HOST === '' || TOKEN === '' || AGENT === '' ? 'set REVITION_E2E_HOST, REVITION_E2E_TOKEN (cli:read, cli:agents) and REVITION_E2E_AGENT' : false;
 
@@ -65,26 +70,47 @@ describe('Phase 3 journeys', { skip: SKIP }, () => {
     assert.equal(pull.code, 0, pull.stderr);
     pulledFile = resolve(root, String(data(pull.stdout)['file']));
     original = readFileSync(pulledFile, 'utf8');
-    writeFileSync(pulledFile, original.replace(/instructions: (.*)/, 'instructions: $1 (phase 3 e2e)'));
+    // Ruling #279: the journey authors ONE model-backed case on its own draft (the pulled file's Tests section, pushed
+    // through the CLI's own draft route), so `agents test` has a paid case to quote; after() pushes the original back.
+    const doc = parseDefinitionText(original.replace(/instructions: (.*)/, 'instructions: $1 (phase 3 e2e)')) as {
+      config: { sections: Record<string, unknown> };
+    };
+    const tests = (doc.config.sections['tests'] as { cases?: unknown[] } | undefined) ?? {};
+    doc.config.sections['tests'] = { ...tests, cases: [...(tests.cases ?? []), JOURNEY_CASE] };
+    writeFileSync(pulledFile, definitionText(doc as never));
     const push = await cli(['agents', 'push', pulledFile, '--yes', '--json']);
     assert.equal(push.code, 0, push.stderr);
-    const quote = await cli(['agents', 'test', AGENT, '--json']);
-    // Without --yes a paid run stops at the quote (exit 2); with no paid case it runs (free).
-    const fresh = quote.code === 2 ? null : data(quote.stdout);
-    if (fresh === null) {
-      if (APPROVED_QUOTE === '') {
-        console.log('PHASE3 agents test: paid; not run (set REVITION_E2E_TESTS_QUOTE to the approved quote id)');
-      } else {
-        const run = await cli(['agents', 'test', AGENT, '--yes', '--json']);
-        const d = data(run.stdout) as { quote: { quoteId: string; billedEstimateUsd?: number | null }; report: unknown };
-        assert.equal(d.quote.quoteId, APPROVED_QUOTE, 'the fresh quote differs from the approved one: not run again');
-        spend.push({ step: 'agents test', quoteId: d.quote.quoteId, quoted: d.quote.billedEstimateUsd ?? null, billed: null });
-      }
+    // The quote, read from the platform's own route ($0): the authored case makes the run paid.
+    const quoted = (await (
+      await fetch(`${scheme}://${HOST}/api/v1/foundry/deployments/${encodeURIComponent(AGENT)}/tests/quote`, { headers: { authorization: `Bearer ${TOKEN}` } })
+    ).json()) as { quoteId: string; modelCalls: number; billedEstimateUsd?: number | null };
+    assert.ok(quoted.modelCalls >= 1, `the authored case is paid: ${JSON.stringify(quoted)}`);
+    // Quote -> confirm: without --yes the paid run stops before any call is made.
+    const unconfirmed = await cli(['agents', 'test', AGENT, '--json']);
+    assert.equal(unconfirmed.code, 2, unconfirmed.stdout);
+    let ranReport: { results: { caseId: string }[] } | null = null;
+    if (PAID_OK) {
+      assert.ok(quoted.modelCalls <= 2, 'at most the authored case and one existing case are paid');
+      assert.ok((quoted.billedEstimateUsd ?? 0) <= CAP_USD, `quote ${String(quoted.billedEstimateUsd)} within the cap ${CAP_USD}`);
+      const run = await cli(['agents', 'test', AGENT, '--yes', '--json']);
+      const d = data(run.stdout) as { quote: { quoteId: string; billedEstimateUsd?: number | null }; report: { results: { caseId: string }[] } };
+      assert.equal(d.quote.quoteId, quoted.quoteId, 'the run is the quote that was shown (the draft did not change in between)');
+      assert.ok(d.report.results.some((r) => r.caseId === JOURNEY_CASE.id), 'the authored case ran');
+      ranReport = d.report;
+      spend.push({ step: 'agents test', quoteId: d.quote.quoteId, quoted: d.quote.billedEstimateUsd ?? null, billed: null });
+    } else {
+      console.log(`PHASE3 agents test: paid (${quoted.modelCalls} call(s), quote ${quoted.quoteId}); not run without REVITION_E2E_PAID_OK=1`);
     }
     const status = await cli(['agents', 'status', AGENT, '--json']);
     assert.equal(status.code, 0, status.stderr);
+    // AC2: the draft diff, the latest report and the environments, the portal's own (same routes the portal reads).
+    const st = data(status.stdout) as { draftVsLive: unknown; tests: { report: { results: { caseId: string }[] } | null }; environments: unknown };
+    assert.ok(st.draftVsLive !== undefined && Array.isArray(st.environments), status.stdout);
+    if (ranReport !== null) assert.deepEqual(st.tests.report?.results.map((r) => r.caseId), ranReport.results.map((r) => r.caseId));
     const open = await cli(['agents', 'open', AGENT, '--action', 'publish', '--json']);
     assert.equal(open.code, 0, open.stderr);
+    // AC3: the human publish page of THIS agent.
+    assert.ok(String(data(open.stdout)['url']).includes(AGENT), String(data(open.stdout)['url']));
     console.log(`PHASE3 human publish page: ${String(data(open.stdout)['url'])}`);
     const direct = await fetch(`${scheme}://${HOST}/api/v1/foundry/deployments/${encodeURIComponent(AGENT)}/draft/publish`, {
       method: 'POST',

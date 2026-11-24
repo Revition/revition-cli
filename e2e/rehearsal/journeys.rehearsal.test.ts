@@ -74,9 +74,13 @@ describe('dress rehearsal: the staging journeys, unchanged, against the scripted
     assert.ok(order.includes('DELETE /dev/apps/dapp_rehearsal/secrets/PHASE2_E2E'), 'the secret is removed');
   });
 
-  it('[CLI-T3.4.1-AC1] [CLI-T3.1.3-AC4] phase 3: agents pull -> edit -> push -> test -> status -> open (human publish) -> CLI publish 403; MCP read tools only', async () => {
-    const r = await rehearse('phase3', 'phase3', { REVITION_E2E_AGENT: 'dep_rehearsal' });
+  it('[CLI-T3.4.1-AC1] [CLI-T3.1.3-AC4] [CLI-T3.1.4-AC2] [CLI-T3.1.4-AC3] phase 3: agents pull -> edit -> push -> test -> status -> open (human publish) -> CLI publish 403; MCP read tools only', async () => {
+    const r = await rehearse('phase3', 'phase3', { REVITION_E2E_AGENT: 'dep_rehearsal', REVITION_E2E_PAID_OK: '1' });
     assertClean(r, 2);
+    const seq = r.platform.calls.map((c) => `${c.method} ${c.path.replace(/^\/api\/v1\/foundry/u, '')}`);
+    // [CLI-T3.1.4-AC2] [CLI-T3.1.4-AC3] ruling #279: the authored paid case is quoted before it runs, then reported.
+    assert.ok(seq.indexOf('GET /deployments/dep_rehearsal/tests/quote') < seq.indexOf('POST /deployments/dep_rehearsal/tests/run'), 'quoted before the run');
+    assert.ok(seq.includes('GET /deployments/dep_rehearsal/tests/report'), 'status reads the report');
     const puts = r.platform.calls.filter((c) => c.method === 'PUT' && c.path.endsWith('/draft'));
     assert.equal(puts.length, 2, 'the edit is pushed, then reverted (the pulled definition pushed back)');
   });

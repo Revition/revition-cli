@@ -37,6 +37,19 @@ interface State {
   project: { files: Record<string, string>; version: number };
   audit: Array<Record<string, unknown>>;
   agent: { version: number; config: Record<string, unknown>; sections: Record<string, unknown> };
+  report: Record<string, unknown> | null;
+}
+
+/** The draft's own Tests cases; the model-backed ones are paid (FOUNDRY tests/test-cases.ts MODEL_TYPES). */
+const MODEL_TYPES = ['agent_behavior', 'prompt', 'regression', 'evaluation'];
+function testCases(s: State): Array<{ id: string; type: string }> {
+  const t = s.agent.sections['tests'] as { cases?: Array<{ id: string; type: string }> } | undefined;
+  return t?.cases ?? [];
+}
+function testsQuote(s: State): { quoteId: string; draftVersion: number; modelCalls: number; freeCases: number; available: boolean; billedEstimateUsd: number } {
+  const cases = testCases(s);
+  const paid = cases.filter((c) => MODEL_TYPES.includes(c.type)).length;
+  return { quoteId: `q_rehearsal_v${s.agent.version}_${paid}`, draftVersion: s.agent.version, modelCalls: paid, freeCases: cases.length - paid, available: true, billedEstimateUsd: 0.05 * paid };
 }
 
 const AGENT_LIVE: Record<string, unknown> = {
@@ -148,6 +161,20 @@ const HANDLERS: Record<string, Handler> = {
     const changed = Object.keys(s.agent.config).filter((k) => JSON.stringify(s.agent.config[k]) !== JSON.stringify(AGENT_LIVE[k]));
     return ok({ changedSections: changed, added: [], removed: [], hasUnsavedChanges: changed.length > 0 });
   },
+  // T3.1.4: the draft's Tests, scripted: the quote counts the authored model-backed cases; a paid run needs that quoteId.
+  'GET /deployments/{deploymentId}/tests/quote': (_m, _b, s) => ok(testsQuote(s)),
+  'POST /deployments/{deploymentId}/tests/run': (_m, b, s) => {
+    const q = testsQuote(s);
+    if (q.modelCalls > 0 && (b as { quoteId?: string } | null)?.quoteId !== q.quoteId) {
+      return { status: 409, body: { error: { code: 'AGENT_QUOTE_MISMATCH', message: 'Run the quote you were shown.' } } };
+    }
+    const results = testCases(s).map((c) => ({ caseId: c.id, type: c.type, status: 'passed', passed: true }));
+    s.report = { draftVersion: s.agent.version, results, regressionCount: 0, allPassed: true };
+    return ok(s.report);
+  },
+  'GET /deployments/{deploymentId}/tests/report': (_m, _b, s) =>
+    ok({ report: s.report, run: s.report === null ? null : { status: 'finished', done: (s.report['results'] as unknown[]).length, total: (s.report['results'] as unknown[]).length } }),
+  'GET /deployments/{deploymentId}/environments': () => ok({ managed: null, environments: [{ env: 'prod', provisioned: true, artifactRef: 'art_rehearsal', pending: null }, { env: 'staging', provisioned: true, artifactRef: null, pending: { from: 'staging', to: 'prod', requestedBy: 'usr_rehearsal', requestedAt: AT } }] }),
   // The metered sandbox leg, scripted: open, one run, dispose (no provider exists behind it).
   'POST /dev/projects/{projectId}/sandbox': (m) => ok({ sessionId: 'dsbx_rehearsal', projectId: m[1], tier: 'dev', provider: 'rehearsal', expiresAt: '2026-11-19T00:20:00Z', resumed: false }),
   'POST /dev/projects/{projectId}/sandbox/run': (_m, b) => ok({ ok: true, output: { greeting: `Hello, ${String(((b as { input?: { name?: string } } | null)?.input?.name) ?? 'world')}` }, logs: [], wallMs: 1 }),
@@ -179,6 +206,7 @@ export async function startJourneyPlatform(token: string, opts: { readonly minCl
     project: { files: { ...STARTER.files }, version: 1 },
     audit: [{ event: 'app_registered', at: Date.now(), client: 'cli', appId: 'dapp_rehearsal' }],
     agent: { version: 3, config: { ...AGENT_LIVE }, sections: { governance: { autonomy: 'draft' } } },
+    report: null,
   };
   const calls: PlatformCall[] = [];
   const server = http.createServer((req, res) => {
