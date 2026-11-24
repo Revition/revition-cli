@@ -52,6 +52,8 @@ jobs:
   build:
     name: Build (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
+    # A normal run takes ~7 min; a hung test fails here (with readable logs) instead of holding the runner for 6 h.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

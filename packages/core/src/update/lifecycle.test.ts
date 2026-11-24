@@ -153,6 +153,21 @@ describe('Set 4 lifecycle (core)', () => {
     assert.equal(await flushQueue(state, async (p) => void sent.push(p)), 0, 'the queue is empty after a send');
   });
 
+  it('[CLI-T1.4.2-AC4] an event queued while a batch is in flight is kept and sent by the next flush (never dropped)', async () => {
+    const state = await mkdtemp(join(tmpdir(), 'revtel-'));
+    const make = (command: string) =>
+      buildEvent({ installId: '7b0e7b8e-1b1a-4a54-9d0b-36f1a6a4e0a1', cliVersion: '0.1.0', platform: 'linux', nodeVersion: 'v22.1.0', command, argv: [], exitCode: 0, durationMs: 1, env: {}, now: NOW });
+    await enqueue(state, make('telemetry:enable') as TelemetryEvent);
+    const sent: Array<{ events: Array<{ command: string }> }> = [];
+    // A second command enqueues while the first batch is being posted (two detached workers racing).
+    await flushQueue(state, async (p) => {
+      sent.push(p as { events: Array<{ command: string }> });
+      await enqueue(state, make('whoami') as TelemetryEvent);
+    });
+    assert.equal(await flushQueue(state, async (p) => void sent.push(p as { events: Array<{ command: string }> })), 1);
+    assert.deepEqual(sent.map((p) => p.events.map((e) => e.command)), [['telemetry:enable'], ['whoami']]);
+  });
+
   it('[CLI-T1.4.3-AC3] the offline path uses the cache; no cache = defaults (all off)', async () => {
     const cacheDir = await mkdtemp(join(tmpdir(), 'revflag-'));
     const offline = new ApiClient({ host: '127.0.0.1:9', token: async () => 'rvt_x', cliVersion: '0.1.0', retries: 0 }, { env: {} });

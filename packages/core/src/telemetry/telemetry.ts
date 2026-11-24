@@ -124,6 +124,17 @@ export async function enqueue(stateDir: string, e: TelemetryEvent): Promise<numb
   return next.length;
 }
 
+/** The queue minus the sent batch (each sent event removed once, by value; the queue only appends). */
+function unsent(queue: readonly TelemetryEvent[], sent: readonly TelemetryEvent[]): TelemetryEvent[] {
+  const pending = sent.map((e) => JSON.stringify(e));
+  return queue.filter((e) => {
+    const i = pending.indexOf(JSON.stringify(e));
+    if (i === -1) return true;
+    pending.splice(i, 1);
+    return false;
+  });
+}
+
 /** Sends the queued batch through `post`; on success records the payload for show-last and empties the queue. */
 export async function flushQueue(stateDir: string, post: (payload: { events: TelemetryEvent[] }) => Promise<void>): Promise<number> {
   const queueFile = join(stateDir, FILES.queue);
@@ -133,7 +144,9 @@ export async function flushQueue(stateDir: string, post: (payload: { events: Tel
   await post(payload);
   const last = await readJson<TelemetryEvent[]>(join(stateDir, FILES.last), []);
   await atomicWriteFile(join(stateDir, FILES.last), JSON.stringify([...last, ...events].slice(-SHOW_LAST)));
-  await atomicWriteFile(queueFile, '[]');
+  // Remove ONLY what was sent: a command that enqueued while this batch was in flight keeps its event for the next
+  // flush (truncating to '[]' here dropped it unsent).
+  await atomicWriteFile(queueFile, JSON.stringify(unsent(await readJson<TelemetryEvent[]>(queueFile, []), events)));
   return events.length;
 }
 
