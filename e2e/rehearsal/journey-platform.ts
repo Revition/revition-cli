@@ -69,7 +69,7 @@ const EVAL_RUN = (appId: string, suiteId: string, quoteId: string): Record<strin
   passRate: 1, cases: 1, at: AT, billedCredits: 0, quoteId,
 });
 const QUOTE = (appId: string, suiteId: string): Record<string, unknown> => ({
-  quoteId: 'evq_rehearsalrehearsalrehearsalrehe', appId, projectId: 'dproj_rehearsal', suiteId, digest: 'sha256:rehearsal', cases: 1, modelCalls: 0, estCredits: 0, balanceCredits: 0,
+  quoteId: 'evq_rehearsalrehearsalrehearsalrehe', appId, projectId: 'dproj_rehearsal', suiteId, digest: 'sha256:rehearsal', cases: 1, modelCalls: 2, estCredits: null, balanceCredits: 0,
 });
 const view = (appId: string, keyId: string): Record<string, unknown> => ({ keyId, appId, scopes: [], issuedAt: AT, expiresAt: '2027-02-16T00:00:00Z', revokeAt: null });
 
@@ -110,6 +110,15 @@ const HANDLERS: Record<string, Handler> = {
     s.project = { files: { ...s.project.files, ...(body.files ?? {}) }, version: s.project.version + 1 };
     return ok({ projectId: m[1], version: s.project.version });
   },
+  // The platform's app manifest contract (monorepo devportal/registration/app-registration.ts:44-46, :125): a plugin
+  // manifest, never the project's revition.json.
+  'POST /dev/apps': (_m, b) => {
+    const m = ((b ?? {}) as { manifest?: Record<string, unknown> }).manifest ?? {};
+    const valid = typeof m['pluginId'] === 'string' && /^[a-z0-9][a-z0-9-]{1,62}$/u.test(m['pluginId']) && typeof m['brand'] === 'string' && m['brand'] !== ''
+      && typeof m['category'] === 'string' && m['category'] !== '' && typeof m['description'] === 'string' && typeof m['version'] === 'string' && Array.isArray(m['dataClasses']);
+    if (!valid) return fail(400, 'DEV_APP_MANIFEST_INVALID', 'the manifest is a plugin manifest (pluginId, brand, category, description, version, dataClasses)');
+    return ok({ appId: 'dapp_rehearsal', manifestRef: `plugin://${String(m['pluginId'])}@${String(m['version'])}`, declaredScopes: [], createdAt: AT }, 201);
+  },
   'GET /dev/apps': () => ok({ apps: [{ appId: 'dapp_rehearsal', manifestRef: 'plugin://hello-tool@0.1.0', manifest: {}, declaredScopes: [], createdAt: AT }] }),
   'POST /dev/apps/{appId}/keys': (m, _b, s) => {
     const keyId = `${(++s.keySeq).toString(16).padStart(16, '0')}`;
@@ -129,7 +138,14 @@ const HANDLERS: Record<string, Handler> = {
     return ok({ name: m[2] });
   },
   'DELETE /dev/apps/{appId}/secrets/{name}': (m, _b, s) => (s.secrets.delete(m[2] ?? '') ? ok({ name: m[2] }) : fail(404, 'DEV_SECRET_NOT_FOUND', 'No such secret.')),
-  'GET /dev/apps/{appId}/evals/quote': (m, _b, _s) => ok(QUOTE(m[1] ?? '', 'journey')),
+  // The platform quotes only a measurable saved suite (monorepo devportal/eval/dev-eval.ts:153-167).
+  'GET /dev/apps/{appId}/evals/quote': (m, _b, s) => {
+    const raw = s.project.files['evals/journey.json'];
+    const suite = raw === undefined ? null : (JSON.parse(raw) as { dimensions?: string[]; cases?: Array<{ expected?: unknown }> });
+    const text = (suite?.dimensions ?? []).some((d) => d === 'task_success' || d === 'output_quality');
+    const measured = text && (suite?.cases ?? []).length > 0 && (suite?.cases ?? []).every((c) => typeof c.expected === 'string');
+    return measured ? ok(QUOTE(m[1] ?? '', 'journey')) : fail(400, 'AGENT_INVALID_INPUT', 'measure at least one of task_success, output_quality (a reference text)');
+  },
   'POST /dev/apps/{appId}/evals': (m, b) => ok(EVAL_RUN(m[1] ?? '', 'journey', String((b as { quoteId?: string } | null)?.quoteId ?? '')), 201),
   'GET /dev/apps/{appId}/evals': (m) => ok({ runs: [EVAL_RUN(m[1] ?? '', 'journey', 'evq')] }),
   'POST /dev/apps/{appId}/submissions': (m, b, s) => {

@@ -34,9 +34,17 @@ export interface ExecResult {
   readonly networkIsolated: boolean;
 }
 
+let isolationProbe: boolean | undefined;
+
+/**
+ * Whether the OS ALLOWS a network-less user namespace here: probed by creating one (`unshare -rn true`), not by the
+ * binary's presence. A host that ships `unshare` but restricts unprivileged user namespaces (e.g. Ubuntu 24.04's
+ * AppArmor default) refuses it, and every command would fail; there the command runs unisolated, reported as such.
+ */
 function hasUnshare(): boolean {
   if (process.platform !== 'linux') return false;
-  return spawnSync('unshare', ['--help'], { stdio: 'ignore' }).status === 0;
+  isolationProbe ??= spawnSync('unshare', ['-rn', 'true'], { stdio: 'ignore' }).status === 0;
+  return isolationProbe;
 }
 
 /** Runs an approved command in the root. The caller has applied execDecision and any approval. */

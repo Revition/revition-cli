@@ -21,7 +21,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -99,6 +99,12 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     assert.equal(init.code, 0, init.stderr);
     const gen = await cli(['generate', 'eval-suite', 'journey', '--yes', '--json'], { cwd: PROJECT });
     assert.equal(gen.code, 0, gen.stderr);
+    // The generator writes a schema-valid SKELETON (REVITION-CLI-PLAN.md:2092); the developer then makes it measurable.
+    // The platform quotes only a suite with a reference-text or reference-tools dimension and an expected per case.
+    const suitePath = join(PROJECT, 'evals', 'journey.json');
+    const suite = JSON.parse(readFileSync(suitePath, 'utf8')) as { cases: Array<Record<string, unknown>> };
+    const measurable = { ...suite, dimensions: ['task_success'], cases: suite.cases.slice(0, 1).map((c) => ({ ...c, expected: 'A short greeting.' })) };
+    writeFileSync(suitePath, `${JSON.stringify(measurable, null, 2)}\n`);
     const build = await cli(['build', '--json'], { cwd: PROJECT });
     assert.ok(build.code === 0 || build.code === 12, `build: ${build.stderr}`);
   });
@@ -121,8 +127,12 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
 
   it('[CLI-T2.5.1-AC1] apps: the test app (created only on request), keys create / rotate / revoke', async () => {
     if (appId === '' && E['REVITION_E2E_CREATE_APP'] === '1') {
-      const created = await cli(['apps', 'create', '--manifest', join(PROJECT, 'revition.json'), '--yes', '--json'], { cwd: PROJECT });
-      assert.equal(created.code, 0, created.stderr);
+      // apps create takes the APP manifest (create.ts:24), not the project's revition.json ({summary, capabilities}).
+      const manifestPath = join(root, 'app-manifest.json');
+      const manifest = { pluginId: `phase2-e2e-${Date.now()}`, brand: 'Phase 2 E2E', category: 'utility', description: 'CLI phase 2 journey app', version: '0.1.0', dataClasses: [] };
+      writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
+      const created = await cli(['apps', 'create', '--manifest', manifestPath, '--yes', '--json'], { cwd: PROJECT });
+      assert.equal(created.code, 0, `${created.stdout}${created.stderr}`);
       appId = data<{ appId: string }>(created).appId;
     }
     assert.notEqual(appId, '', 'set REVITION_E2E_APP (or REVITION_E2E_CREATE_APP=1)');
@@ -148,21 +158,29 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
 
   it('[CLI-T2.5.1-AC2] [CLI-T2.3.1-AC1] [CLI-T2.3.1-AC4] [CLI-T2.3.1-AC6] [CLI-T2.3.1-AC7] eval: quoted first; fired only for the quote the user approved; the billed credits recorded', async () => {
     const dry = await cli(['eval', 'run', '--app', appId, '--suite', 'journey', '--dry-run', '--json'], { cwd: PROJECT });
-    assert.equal(dry.code, 0, dry.stderr);
+    assert.equal(dry.code, 0, `${dry.stdout}${dry.stderr}`);
     const quote = data<{ quote: { quoteId: string; estCredits: number | null; modelCalls: number } }>(dry).quote;
     // Approved = the exact quote id the user approved, OR (step 10, the user's GO on a capped total) a cap in credits:
     // the fresh quote is within REVITION_E2E_EVAL_CAP_CREDITS and makes at most 4 model calls. Otherwise not run.
     const cap = E['REVITION_E2E_EVAL_CAP_CREDITS'] === undefined ? null : Number(E['REVITION_E2E_EVAL_CAP_CREDITS']);
-    const withinCap = cap !== null && quote.estCredits !== null && quote.estCredits <= cap && quote.modelCalls <= 4;
+    // The platform prices an eval only after the run (estCredits null until Arena exposes a per-call price,
+    // monorepo devportal/eval/eval-quote.ts:5-6, :63), so a null estimate is bounded by its model calls and the billed
+    // amount is asserted within the cap after the run.
+    const withinCap = cap !== null && quote.modelCalls <= 4 && (quote.estCredits === null || quote.estCredits <= cap);
+    process.stdout.write(`PHASE2_EVAL_QUOTE ${JSON.stringify({ quoteId: quote.quoteId, estCredits: quote.estCredits, modelCalls: quote.modelCalls, cap })}\n`);
     if (!(APPROVED_QUOTE !== '' && APPROVED_QUOTE === quote.quoteId) && !withinCap) {
+      // A capped (step-10) fire must run or fail: a quote outside the cap is a failure that shows the quote, never a pass.
+      assert.equal(cap, null, `the eval quote is outside the cap ${String(cap)}: ${JSON.stringify(quote)}`);
       spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: null });
       return;
     }
     const ran = await cli(['eval', 'run', '--app', appId, '--suite', 'journey', '--yes', '--json'], { cwd: PROJECT });
-    assert.equal(ran.code, 0, ran.stderr);
-    const billed = data<{ run: { billedCredits?: number } }>(ran).run.billedCredits ?? null;
-    if (cap !== null && billed !== null) assert.ok(billed <= cap, `billed ${billed} credits within the cap ${cap}`);
-    spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: billed });
+    assert.equal(ran.code, 0, `${ran.stdout}${ran.stderr}`);
+    const billed = data<{ run: { runId?: string; billedCredits?: number } }>(ran).run;
+    process.stdout.write(`PHASE2_EVAL_RUN ${JSON.stringify({ runId: billed.runId ?? null, billedCredits: billed.billedCredits ?? null })}\n`);
+    assert.equal(typeof billed.billedCredits, 'number', 'the run record carries its billed credits (CLI-T2.3.1-AC3)');
+    if (cap !== null) assert.ok((billed.billedCredits ?? 0) <= cap, `billed ${String(billed.billedCredits)} credits within the cap ${cap}`);
+    spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: billed.billedCredits ?? null });
   });
 
   it('[CLI-T2.5.1-AC1] submit -> submissions (the reviewer certifies in the portal) -> submissions open', async () => {

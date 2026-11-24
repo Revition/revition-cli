@@ -29,10 +29,16 @@ describe('T3.3.2 exec policy', () => {
     process.env['REVITION_TOKEN'] = `rvt_${'Q'.repeat(40)}`;
     try {
       const p = effectivePolicy(root, {}, { network: 'allow' });
-      const r = await runLocalCommand(p, 'pwd; echo "tok=${REVITION_TOKEN:-none}"; echo "key sk-ant-' + 'A'.repeat(30) + '"');
+      // The command runs in the platform's shell (exec.ts: cmd.exe on Windows, sh elsewhere), so it is written for it.
+      const key = `sk-ant-${'A'.repeat(30)}`;
+      const command = process.platform === 'win32'
+        ? `cd & echo tok=%REVITION_TOKEN% & echo key ${key}`
+        : `pwd; echo "tok=\${REVITION_TOKEN:-none}"; echo "key ${key}"`;
+      const r = await runLocalCommand(p, command);
       assert.equal(r.exitCode, 0);
-      assert.match(r.output, new RegExp(root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-      assert.match(r.output, /tok=none/);
+      assert.match(r.output, new RegExp(root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+      assert.doesNotMatch(r.output, /rvt_Q/, 'the CLI credential is not in the command environment');
+      if (process.platform !== 'win32') assert.match(r.output, /tok=none/);
       assert.doesNotMatch(r.output, /sk-ant-A/);
     } finally {
       if (before === undefined) delete process.env['REVITION_TOKEN'];

@@ -54,6 +54,19 @@ describe('dress rehearsal: the staging journeys, unchanged, against the scripted
     assert.ok(r.run.junit.includes('[CLI-T1.6.1-AC1]'), 'the raw journey report is recorded');
   });
 
+  it('[CLI-T2.5.1-AC1] [CLI-T2.3.1-AC1] phase 2, app created on request: apps create sends a plugin manifest; the eval quote is read within the cap', async () => {
+    const r = await rehearse('phase2-create', 'phase2', {
+      REVITION_E2E_CREATE_APP: '1',
+      REVITION_E2E_VERSION: '1.0.0',
+      REVITION_E2E_PAID_OK: '1',
+      REVITION_E2E_EVAL_CAP_CREDITS: '40',
+    });
+    assertClean(r, 10);
+    const order = r.platform.calls.map((c) => `${c.method} ${c.path.replace(/^\/api\/v1\/foundry/u, '')}`);
+    assert.ok(order.includes('POST /dev/apps'), 'the app was created');
+    assert.ok(order.indexOf('PUT /dev/projects/dproj_rehearsal/files') < order.indexOf('GET /dev/apps/dapp_rehearsal/evals/quote'), 'the suite is saved before the quote');
+  });
+
   it('[CLI-T1.6.1-AC2] phase 1 forced-upgrade probe: the platform minimum raised, the CLI exits 10 with the platform message', async () => {
     const r = await rehearse('phase1-426', 'phase1', { REVITION_E2E_EXPECT_426: '9.0.0' }, { minCliVersion: '9.0.0' });
     assertClean(r, 1);

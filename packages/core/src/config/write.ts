@@ -87,6 +87,25 @@ export function setConfigValue(config: UserConfig, key: string, value: string | 
   return parsed.data;
 }
 
+const WINDOWS_RENAME_RETRY = new Set(['EPERM', 'EACCES', 'EBUSY']);
+
+/**
+ * rename(2) over an existing file. On Windows a concurrent writer or reader of the target makes it fail transiently
+ * (EPERM / EACCES / EBUSY); it is retried with a short backoff, bounded (the graceful-fs / write-file-atomic rule).
+ */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code ?? '';
+      if (process.platform !== 'win32' || !WINDOWS_RENAME_RETRY.has(code) || attempt >= 20) throw err;
+      await new Promise((r) => setTimeout(r, Math.min(10 * 2 ** attempt, 200)));
+    }
+  }
+}
+
 /**
  * Atomic write: a temp file in the same directory, then rename over the target (a reader sees the old file or the
  * new one, never a torn one); file mode 0600 on POSIX.
@@ -96,7 +115,7 @@ export async function atomicWriteFile(path: string, contents: string): Promise<v
   const tmp = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     await writeFile(tmp, contents, { mode: 0o600 });
-    await rename(tmp, path);
+    await renameWithRetry(tmp, path);
   } catch (err) {
     await rm(tmp, { force: true });
     throw err;

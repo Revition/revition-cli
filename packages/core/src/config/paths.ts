@@ -1,5 +1,8 @@
 import { homedir } from 'node:os';
-import { join, win32 } from 'node:path';
+import { posix, win32 } from 'node:path';
+
+// The Linux / macOS paths are POSIX paths whatever host computes them (a Windows host computing them must not use '\\').
+const { join } = posix;
 
 /**
  * T1.1.2 - where the CLI keeps its files, per OS:
