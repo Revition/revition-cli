@@ -158,7 +158,14 @@ export async function startMockAuth(opts: MockOptions = {}): Promise<MockAuth> {
     if (req.method === 'POST' && path === '/api/v1/foundry/dev/cli/telemetry') {
       return json(res, 202, { accepted: (JSON.parse(body) as { events: unknown[] }).events.length });
     }
-    if (req.method === 'GET' && path === '/api/v1/foundry/dev/cli/flags') return json(res, 200, { flags: opts.flags ?? {}, ttl: 3600 });
+    if (req.method === 'GET' && path === '/api/v1/foundry/dev/cli/flags') {
+      // The platform's server-side check (cli-flags/route.ts ?require=): refused unless the flag is on for the caller.
+      const required = new URL(req.url ?? '', 'http://x').searchParams.get('require');
+      if (required !== null && opts.flags?.[required] !== true) {
+        return json(res, 403, { error: { code: 'CLI_FEATURE_DISABLED', message: `the CLI feature ${required} is not enabled for this account` } });
+      }
+      return json(res, 200, { flags: opts.flags ?? {}, ttl: 3600 });
+    }
     return json(res, 404, { error: { code: 'NOT_FOUND', message: path } });
   }, apiLog);
   return {
