@@ -74,6 +74,11 @@ jobs:
       # The CLI tests run the built binary (dist + oclif manifests): build first.
       - run: pnpm build
       - run: pnpm test
+      # CLI-T1.1.1-AC6: the startup budget, measured alone (not under the parallel suite's CPU load).
+      - name: Startup budget
+        run: node --import tsx --test --test-concurrency=1 --test-reporter=tap --test-name-pattern "startup within budget" packages/cli/src/fixture-plugin.test.ts
+        env:
+          REVITION_STARTUP_BUDGET: '1'
       # The CLI package arrives with the migration (T0.1.3); until then these two steps have nothing to run.
       - name: CLI starts (--version)
         if: hashFiles('packages/cli/package.json') != ''

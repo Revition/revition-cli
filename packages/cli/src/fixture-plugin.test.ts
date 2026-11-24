@@ -52,7 +52,12 @@ describe('T1.1.1 a command is a module: the fixture plugin', () => {
     assert.equal((await runCli(FIXTURE_RUN, ['fixture', 'lab'], { env: { REVITION_EXPERIMENTAL: '1' } })).code, 0);
   });
 
-  it('[CLI-T1.1.1-AC6] startup within budget: --version and --help under 300 ms (this OS; the CI matrix runs the others)', async () => {
+  // A latency budget is measured ALONE: inside the parallel suite (node --test runs every file at once) the timing is
+  // the runner's CPU contention, not the CLI's startup. CI runs it as its own step (ci.yml "Startup budget",
+  // REVITION_STARTUP_BUDGET=1, --test-concurrency=1); the parallel suite skips it.
+  it('[CLI-T1.1.1-AC6] startup within budget: --version and --help under 300 ms (this OS; the CI matrix runs the others)', {
+    skip: process.env['REVITION_STARTUP_BUDGET'] === '1' ? false : 'measured in isolation (REVITION_STARTUP_BUDGET=1, its own CI step)',
+  }, async () => {
     // Warm the module cache once, then measure the median of 5 runs of each. The CLI is timed as a user runs it: the
     // suite-wide telemetry spy (a TEST-ONLY preload in NODE_OPTIONS, scripts/test-all.mjs) is left out of these runs.
     const env = { NODE_OPTIONS: (process.env['NODE_OPTIONS'] ?? '').replace(/--import=\S*telemetry-spy\.mjs/u, '').trim() };
