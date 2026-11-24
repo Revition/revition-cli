@@ -10,6 +10,7 @@
  *   REVITION_E2E_CREATE_APP=1   create the test app instead (`apps create`; the user archives it afterwards)
  *   REVITION_E2E_PAID_OK=1      allow the metered sandbox step (`dev --sandbox --once`)
  *   REVITION_E2E_EVAL_QUOTE     the quote id the user approved: `eval run` fires only when the fresh quote matches
+ *   REVITION_E2E_EVAL_CAP_CREDITS  OR a cap in credits (step 10 GO): fires when the fresh quote is within it, <= 4 model calls
  *   REVITION_E2E_VERSION        the version to submit (x.y.z, above every earlier submission)
  *   REVITION_E2E_REVIEW_WAIT_MIN minutes to wait for the reviewer to certify the submission (default 0: not waited)
  *   REVITION_CLI_BIN            the CLI entry (default packages/cli/bin/run)
@@ -148,14 +149,20 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
   it('[CLI-T2.5.1-AC2] [CLI-T2.3.1-AC1] [CLI-T2.3.1-AC4] [CLI-T2.3.1-AC6] [CLI-T2.3.1-AC7] eval: quoted first; fired only for the quote the user approved; the billed credits recorded', async () => {
     const dry = await cli(['eval', 'run', '--app', appId, '--suite', 'journey', '--dry-run', '--json'], { cwd: PROJECT });
     assert.equal(dry.code, 0, dry.stderr);
-    const quote = data<{ quote: { quoteId: string } }>(dry).quote;
-    if (APPROVED_QUOTE === '' || APPROVED_QUOTE !== quote.quoteId) {
+    const quote = data<{ quote: { quoteId: string; estCredits: number | null; modelCalls: number } }>(dry).quote;
+    // Approved = the exact quote id the user approved, OR (step 10, the user's GO on a capped total) a cap in credits:
+    // the fresh quote is within REVITION_E2E_EVAL_CAP_CREDITS and makes at most 4 model calls. Otherwise not run.
+    const cap = E['REVITION_E2E_EVAL_CAP_CREDITS'] === undefined ? null : Number(E['REVITION_E2E_EVAL_CAP_CREDITS']);
+    const withinCap = cap !== null && quote.estCredits !== null && quote.estCredits <= cap && quote.modelCalls <= 4;
+    if (!(APPROVED_QUOTE !== '' && APPROVED_QUOTE === quote.quoteId) && !withinCap) {
       spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: null });
       return;
     }
     const ran = await cli(['eval', 'run', '--app', appId, '--suite', 'journey', '--yes', '--json'], { cwd: PROJECT });
     assert.equal(ran.code, 0, ran.stderr);
-    spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: data<{ run: { billedCredits?: number } }>(ran).run.billedCredits ?? null });
+    const billed = data<{ run: { billedCredits?: number } }>(ran).run.billedCredits ?? null;
+    if (cap !== null && billed !== null) assert.ok(billed <= cap, `billed ${billed} credits within the cap ${cap}`);
+    spend.push({ step: 'eval', quoteId: quote.quoteId, billedCredits: billed });
   });
 
   it('[CLI-T2.5.1-AC1] submit -> submissions (the reviewer certifies in the portal) -> submissions open', async () => {
