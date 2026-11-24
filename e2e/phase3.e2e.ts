@@ -60,7 +60,7 @@ describe('Phase 3 journeys', { skip: SKIP }, () => {
     console.log(`PHASE3 spend ${JSON.stringify(spend)}`);
   });
 
-  it('[CLI-T3.4.1-AC1] [CLI-T3.1.3-AC4] agents: pull -> edit -> push -> test (quoted) -> status -> open for the human publish; a CLI-token publish is 403', async () => {
+  it('[CLI-T3.4.1-AC1] [CLI-T3.1.3-AC4] [CLI-T3.1.4-AC2] [CLI-T3.1.4-AC3] agents: pull -> edit -> push -> test (quoted) -> status -> open for the human publish; a CLI-token publish is 403', async () => {
     const pull = await cli(['agents', 'pull', AGENT, '--json']);
     assert.equal(pull.code, 0, pull.stderr);
     pulledFile = resolve(root, String(data(pull.stdout)['file']));

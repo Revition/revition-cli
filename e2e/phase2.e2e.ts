@@ -112,7 +112,7 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     assert.equal(r.failed, 0);
   });
 
-  it('[CLI-T2.5.1-AC1] dev --sandbox: one run, then the sandbox is deleted (metered: needs REVITION_E2E_PAID_OK=1)', { skip: E['REVITION_E2E_PAID_OK'] === '1' ? false : 'metered: not approved for this run' }, async () => {
+  it('[CLI-T2.5.1-AC1] [CLI-T2.1.4-AC5] dev --sandbox: one run, then the sandbox is deleted (metered: needs REVITION_E2E_PAID_OK=1)', { skip: E['REVITION_E2E_PAID_OK'] === '1' ? false : 'metered: not approved for this run' }, async () => {
     const dev = await cli(['dev', '--sandbox', '--once', '--yes', '--json'], { cwd: PROJECT });
     assert.equal(dev.code, 0, dev.stderr);
     assert.equal(data<{ disposed: boolean }>(dev).disposed, true);
@@ -145,7 +145,7 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     assert.equal(unset.code, 0, unset.stderr);
   });
 
-  it('[CLI-T2.5.1-AC2] eval: quoted first; fired only for the quote the user approved; the billed credits recorded', async () => {
+  it('[CLI-T2.5.1-AC2] [CLI-T2.3.1-AC1] [CLI-T2.3.1-AC4] [CLI-T2.3.1-AC6] [CLI-T2.3.1-AC7] eval: quoted first; fired only for the quote the user approved; the billed credits recorded', async () => {
     const dry = await cli(['eval', 'run', '--app', appId, '--suite', 'journey', '--dry-run', '--json'], { cwd: PROJECT });
     assert.equal(dry.code, 0, dry.stderr);
     const quote = data<{ quote: { quoteId: string } }>(dry).quote;
