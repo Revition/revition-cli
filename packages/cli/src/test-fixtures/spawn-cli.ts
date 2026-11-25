@@ -53,6 +53,9 @@ export function runCli(
     });
     child.on('error', reject);
     child.on('close', (code) => resolve({ code, stdout, stderr, ms: performance.now() - started }));
+    // A child that exits without reading stdin (most commands) makes this write fail with EPIPE; the run's result is
+    // its exit, so the write error is ignored rather than thrown out of the test (spawn-cli-epipe.test.ts).
+    child.stdin.on('error', () => undefined);
     child.stdin.end(opts.input ?? '');
   });
 }

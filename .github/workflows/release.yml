@@ -56,6 +56,8 @@ jobs:
         run: node scripts/release.mjs canary-version "$GITHUB_SHA"
       - id: meta
         run: echo "version=$(node -p "require('./packages/cli/package.json').version")" >> "$GITHUB_OUTPUT"
+      # sbom-action writes output-file but does not create its directory (run 45608277637: ENOENT).
+      - run: mkdir -p release-artifacts
       - name: SBOM (CycloneDX)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
@@ -118,7 +120,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - id: changesets
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        # v1: the repository runs @changesets/cli 2.x; action v2 refuses CLI v2 (run 45608277637).
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: pnpm version-packages
           title: Version Packages
@@ -199,6 +202,8 @@ jobs:
           v=$(node -p "require('./packages/cli/package.json').version")
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "channel=$(node scripts/release.mjs channel "$v" "$REQUESTED")" >> "$GITHUB_OUTPUT"
+      # sbom-action writes output-file but does not create its directory (run 45608277637: ENOENT).
+      - run: mkdir -p release-artifacts
       - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           path: .
