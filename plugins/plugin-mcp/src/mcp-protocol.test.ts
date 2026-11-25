@@ -20,7 +20,7 @@ const APP = { appId: 'dapp_mine', developerId: 'auth0|d', manifestRef: 'plugin:/
 async function raw(host: string, lines: readonly string[], want: number): Promise<Record<string, unknown>[]> {
   const root = await mkdtemp(join(tmpdir(), 'revmcp-raw-'));
   // The OS variables a child needs (Windows: SYSTEMROOT, TEMP, USERPROFILE...), as the SDK client passes them.
-  const env = { ...getDefaultEnvironment(), PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), REVITION_HOST: host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' };
+  const env = { ...getDefaultEnvironment(), PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), APPDATA: join(root, 'a'), LOCALAPPDATA: join(root, 'l'), REVITION_HOST: host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' };
   const child = spawn(process.execPath, [CLI_BIN, 'mcp', 'serve'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
   const out: Record<string, unknown>[] = [];
   let buf = '';
@@ -103,7 +103,7 @@ describe('T3.2.2 MCP protocol conformance (the official SDK client against the r
     const root = await mkdtemp(join(tmpdir(), 'revmcp-plain-'));
     const plainBefore = mock.log.length;
     const child = spawn(process.execPath, [CLI_BIN, 'apps', 'list', '--json'], {
-      env: { PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), REVITION_HOST: mock.host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' },
+      env: { PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), APPDATA: join(root, 'a'), LOCALAPPDATA: join(root, 'l'), REVITION_HOST: mock.host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     await new Promise((r) => child.on('close', r));

@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { infoOnlyRun } from './startup-path.js';
 import { CLI_BIN, FIXTURE_RUN, runCli } from './test-fixtures/spawn-cli.js';
 
-const RECORDER = fileURLToPath(new URL('./test-fixtures/record-loads.mjs', import.meta.url));
+/** A file: URL: a Windows path is not a valid --import specifier (ERR_UNSUPPORTED_ESM_URL_SCHEME, PR #11 run 45564271218). */
+const RECORDER = new URL('./test-fixtures/record-loads.mjs', import.meta.url).href;
 /** The full core entry and the libraries that load only on first use (packages/core/src/lazy-deps.ts LAZY_PACKAGES). */
 const FULL_CORE = /\/packages\/core\/dist\/index\.js$|\/@revition\/cli-core\/dist\/index\.js$/u;
 const LAZY = /\/node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:undici|@sigstore\/(?:bundle|protobuf-specs|verify)|@napi-rs\/keyring)\//u;

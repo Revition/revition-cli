@@ -88,6 +88,9 @@ export async function connect(host: string, flags: readonly string[] = []): Prom
     XDG_CONFIG_HOME: join(root, 'c'),
     XDG_STATE_HOME: join(root, 's'),
     XDG_CACHE_HOME: join(root, 'k'),
+    // Windows ignores XDG_* (core config/paths.ts): without these the server used the runner's real profile.
+    APPDATA: join(root, 'a'),
+    LOCALAPPDATA: join(root, 'l'),
     REVITION_HOST: host,
     REVITION_TOKEN: PAT,
     REVITION_NO_UPDATE_CHECK: '1',

@@ -11,6 +11,7 @@ import { DoctorReport, isEnvelope, runDoctor, type DoctorDeps } from '@revition/
 
 import { completionScript, SHELLS } from './completion.js';
 import { suggestCommand } from './suggest.js';
+import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { CLI_BIN, runCli } from './test-fixtures/spawn-cli.js';
 
 const CLI_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -67,12 +68,12 @@ describe('T1.1.6 help, suggestions, completion, doctor', () => {
     assert.equal(suggestCommand('doctr', ['config:get', 'doctor']), 'doctor');
     assert.equal(suggestCommand('zzzzzzzz', ['config:get', 'doctor']), null);
     const home = await mkdtemp(join(tmpdir(), 'revsug-'));
-    const r = await runCli(CLI_BIN, ['confg', 'set', 'telemetry', 'on'], { env: { XDG_CONFIG_HOME: home } });
+    const r = await runCli(CLI_BIN, ['confg', 'set', 'telemetry', 'on'], { env: { ...cliDirs(home) } });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /Did you mean 'config set'\?/);
     assert.equal(r.stdout, '');
     // never executed: nothing was written
-    const after = await runCli(CLI_BIN, ['config', 'get', 'telemetry'], { env: { XDG_CONFIG_HOME: home } });
+    const after = await runCli(CLI_BIN, ['config', 'get', 'telemetry'], { env: { ...cliDirs(home) } });
     assert.equal(after.stdout, 'unset\n');
   });
 
@@ -102,13 +103,13 @@ describe('T1.1.6 help, suggestions, completion, doctor', () => {
   it('[CLI-T1.1.6-AC4] doctor --json matches its schema, and the leak suite finds no secret in its output', async () => {
     const home = await mkdtemp(join(tmpdir(), 'revdoc-'));
     const r = await runCli(CLI_BIN, ['doctor', '--json'], {
-      env: { XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, REVITION_TOKEN: SECRET, REVITION_HOST: '127.0.0.1', HTTPS_PROXY: `http://user:${SECRET}@127.0.0.1:9` },
+      env: { ...cliDirs(home), REVITION_TOKEN: SECRET, REVITION_HOST: '127.0.0.1', HTTPS_PROXY: `http://user:${SECRET}@127.0.0.1:9` },
     });
     const doc = JSON.parse(r.stdout) as { data: unknown };
     assert.ok(isEnvelope(doc));
     DoctorReport.parse(doc.data);
     assert.ok(!r.stdout.includes(SECRET.slice(4)) && !r.stderr.includes(SECRET.slice(4)), 'doctor leaked a secret');
-    const human = await runCli(CLI_BIN, ['doctor'], { env: { XDG_CONFIG_HOME: home, REVITION_TOKEN: SECRET, HTTPS_PROXY: `http://u:${SECRET}@127.0.0.1:9` } });
+    const human = await runCli(CLI_BIN, ['doctor'], { env: { ...cliDirs(home), REVITION_TOKEN: SECRET, HTTPS_PROXY: `http://u:${SECRET}@127.0.0.1:9` } });
     assert.ok(!human.stdout.includes(SECRET.slice(4)) && !human.stderr.includes(SECRET.slice(4)));
     assert.match(human.stdout, /\d+ ok, \d+ warn, \d+ failed/);
   });

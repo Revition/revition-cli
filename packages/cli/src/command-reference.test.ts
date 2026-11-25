@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { CLI_BIN, runCli } from './test-fixtures/spawn-cli.js';
 
 const SCRIPT = fileURLToPath(new URL('../scripts/command-reference.mjs', import.meta.url));
@@ -28,7 +29,7 @@ describe('T1.6.3 command reference', () => {
   });
 
   it('[CLI-T1.6.3-AC3] every command in the reference matches `revition <command> --help` (summary and flags)', async () => {
-    const env = { XDG_CONFIG_HOME: join(await mkdtemp(join(tmpdir(), 'revref-')), 'c') };
+    const env = { ...cliDirs(await mkdtemp(join(tmpdir(), 'revref-'))) };
     const ref = sections(await readFile(REFERENCE, 'utf8'));
     assert.ok(ref.size >= 20, `the reference lists the commands (${ref.size})`);
     for (const [words, section] of ref) {

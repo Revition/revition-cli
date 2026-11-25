@@ -6,11 +6,12 @@ import { describe, it } from 'node:test';
 
 import { deprecationNotice, metaProblems } from '@revition/cli-core';
 
+import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { FIXTURE_RUN, runCli } from './test-fixtures/spawn-cli.js';
 
 async function dirs(): Promise<Record<string, string>> {
   const root = await mkdtemp(join(tmpdir(), 'revdep-'));
-  return { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+  return { ...cliDirs(root) };
 }
 
 const BASE = {

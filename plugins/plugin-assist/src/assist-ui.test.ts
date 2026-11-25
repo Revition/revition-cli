@@ -122,7 +122,7 @@ describe('T3.3.3 the two entry points', () => {
       for (const [bin, prefix] of [[REVITION_BIN, ['assist']], [CORVITO_BIN, []]] as const) {
         const home = mkdtempSync(join(tmpdir(), 'aep-h-'));
         const from = mock.seen.length;
-        const r = await runBin(bin, [...prefix, ...args], cwd, { REVITION_HOST: mock.host, HOME: home, XDG_CONFIG_HOME: join(home, 'c'), XDG_STATE_HOME: join(home, 's'), XDG_CACHE_HOME: join(home, 'k') });
+        const r = await runBin(bin, [...prefix, ...args], cwd, { REVITION_HOST: mock.host, HOME: home, XDG_CONFIG_HOME: join(home, 'c'), XDG_STATE_HOME: join(home, 's'), XDG_CACHE_HOME: join(home, 'k'), APPDATA: join(home, 'a'), LOCALAPPDATA: join(home, 'l') });
         runs.push({ r, seen: mock.seen.slice(from) });
       }
     } finally {

@@ -7,22 +7,27 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { cliDirs, cliPathsOf, type CliDirs } from './test-fixtures/cli-dirs.js';
 import { startMockAuth } from './test-fixtures/mock-auth.js';
 import { CLI_BIN, FIXTURE_RUN, runCli } from './test-fixtures/spawn-cli.js';
 
 const PAT = `rvt_${'B'.repeat(40)}`;
 
-interface Dirs {
+interface Dirs extends CliDirs {
   readonly [key: string]: string;
   readonly root: string;
-  readonly XDG_CONFIG_HOME: string;
-  readonly XDG_STATE_HOME: string;
-  readonly XDG_CACHE_HOME: string;
 }
 
 async function dirs(): Promise<Dirs> {
   const root = await mkdtemp(join(tmpdir(), 'revlife-'));
-  return { root, XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+  return { root, ...cliDirs(root) };
+}
+
+/** Writes the delivered flag cache where the CLI reads it on this OS. */
+async function writeFlagCache(d: Dirs, flags: Record<string, boolean>): Promise<void> {
+  const { cacheDir } = cliPathsOf(d);
+  await mkdir(cacheDir, { recursive: true });
+  await writeFile(join(cacheDir, 'flags-default.json'), JSON.stringify({ fetchedAt: Date.now(), ttl: 3600, flags }));
 }
 
 async function until(check: () => boolean, ms = 10_000): Promise<boolean> {
@@ -58,7 +63,7 @@ describe('Set 4 lifecycle through the real CLI', () => {
       const spent = performance.now() - started;
       assert.ok(spent < 100, `scheduling took ${spent.toFixed(1)} ms with a 1.5 s registry`);
       // The background check itself is measured separately: it completes and writes the cache.
-      assert.ok(await until(() => existsSync(join(d.XDG_CACHE_HOME, 'revition', 'update.json'))), 'the background check never wrote its cache');
+      assert.ok(await until(() => existsSync(join(cliPathsOf(d).cacheDir, 'update.json'))), 'the background check never wrote its cache');
       assert.ok(served >= 1);
     } finally {
       process.env = saved;
@@ -89,7 +94,7 @@ describe('Set 4 lifecycle through the real CLI', () => {
       for (const args of [['whoami'], ['token', 'list']]) await runCli(CLI_BIN, args, { env: dnt });
       await new Promise((r) => setTimeout(r, 1500));
       assert.deepEqual(mock.apiLog.filter((r) => r.path.endsWith('/dev/cli/telemetry')), []);
-      assert.equal(existsSync(join(dnt.XDG_STATE_HOME, 'revition', 'telemetry-queue.json')), false);
+      assert.equal(existsSync(join(cliPathsOf(dnt).stateDir, 'telemetry-queue.json')), false);
     } finally {
       mock.close();
     }
@@ -129,14 +134,12 @@ describe('Set 4 lifecycle through the real CLI', () => {
     assert.match(refused.stderr, /not available on your account yet/);
     // the client's cache says on (the server delivered it): visible and runs
     const on = await dirs();
-    await mkdir(join(on.XDG_CACHE_HOME, 'revition'), { recursive: true });
-    await writeFile(join(on.XDG_CACHE_HOME, 'revition', 'flags-default.json'), JSON.stringify({ fetchedAt: Date.now(), ttl: 3600, flags: { 'cli.fixture': true } }));
+    await writeFlagCache(on, { 'cli.fixture': true });
     assert.match((await runCli(FIXTURE_RUN, ['fixture', '--help'], { env: on })).stdout, /fixture flagged/);
     assert.equal((await runCli(FIXTURE_RUN, ['fixture', 'flagged'], { env: on })).code, 0);
     // AC2: the server turned it on but this client's cache still says off: the client still hides it
     const stale = await dirs();
-    await mkdir(join(stale.XDG_CACHE_HOME, 'revition'), { recursive: true });
-    await writeFile(join(stale.XDG_CACHE_HOME, 'revition', 'flags-default.json'), JSON.stringify({ fetchedAt: Date.now(), ttl: 3600, flags: { 'cli.fixture': false } }));
+    await writeFlagCache(stale, { 'cli.fixture': false });
     assert.doesNotMatch((await runCli(FIXTURE_RUN, ['fixture', '--help'], { env: stale })).stdout, /fixture flagged/);
   });
 

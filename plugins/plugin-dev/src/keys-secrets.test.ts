@@ -56,7 +56,8 @@ describe('T2.2.2 apps keys', () => {
       assert.equal(r.code, 0, r.stderr);
       assert.equal(r.stdout, `${SECRET_KEY}\n`);
       assert.doesNotMatch(r.stderr, /rdk_/);
-      for (const f of files(env['XDG_STATE_HOME'] ?? '').concat(files(env['XDG_CACHE_HOME'] ?? ''), files(env['XDG_CONFIG_HOME'] ?? ''))) {
+      const cliDirs = ['XDG_STATE_HOME', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'APPDATA', 'LOCALAPPDATA'];
+      for (const f of cliDirs.flatMap((k) => files(env[k] ?? ''))) {
         assert.equal(readFileSync(f, 'utf8').includes(SECRET_KEY), false, `stored in ${f}`);
       }
       const json = await runCli(['apps', 'keys', 'create', 'dapp_mine', '--yes', '--json'], { cwd, host: p.host, env });

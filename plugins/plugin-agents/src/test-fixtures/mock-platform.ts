@@ -74,7 +74,14 @@ export interface Run {
 /** Isolated XDG dirs for one test. */
 export async function dirs(): Promise<Record<string, string>> {
   const root = await mkdtemp(join(tmpdir(), 'revdev-'));
-  return { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+  // APPDATA / LOCALAPPDATA: Windows ignores XDG_* (core config/paths.ts), so they isolate the CLI there.
+  return {
+    XDG_CONFIG_HOME: join(root, 'config'),
+    XDG_STATE_HOME: join(root, 'state'),
+    XDG_CACHE_HOME: join(root, 'cache'),
+    APPDATA: join(root, 'appdata'),
+    LOCALAPPDATA: join(root, 'localappdata'),
+  };
 }
 
 /** Runs the real CLI in `cwd` against the mock (a PAT, so no keychain is touched); stdin is not a TTY. */

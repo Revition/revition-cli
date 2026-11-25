@@ -8,6 +8,7 @@ import { describe, it } from 'node:test';
 import { Config } from '@oclif/core';
 import { isEnvelope } from '@revition/cli-core';
 
+import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { CLI_BIN, runCli } from './test-fixtures/spawn-cli.js';
 
 const CLI_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -16,7 +17,7 @@ describe('T1.1.3 the --json envelope over every command', () => {
   it('[CLI-T1.1.3-AC1] every manifest command emits exactly one valid envelope on stdout under --json', async () => {
     const config = await Config.load(CLI_ROOT);
     const home = await mkdtemp(join(tmpdir(), 'revenv-'));
-    const env = { XDG_CONFIG_HOME: join(home, 'c'), XDG_STATE_HOME: join(home, 's'), XDG_CACHE_HOME: join(home, 'k'), HOME: home };
+    const env = { ...cliDirs(home), HOME: home };
     assert.ok(config.commands.length > 0);
     for (const cmd of config.commands) {
       // One placeholder per required argument; a refusal is still an envelope.

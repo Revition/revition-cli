@@ -5,22 +5,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { CLIENT_ID, startMockAuth, type MockAuth } from './test-fixtures/mock-auth.js';
 import { CLI_BIN, runCli, type Spawned } from './test-fixtures/spawn-cli.js';
 
+/** Every directory cliDirs() redirects the CLI into, under the test root. */
+const CLI_DIR_NAMES = ['state', 'config', 'cache', 'appdata', 'localappdata'] as const;
 const TOKEN_SHAPES = /rvs_[A-Za-z0-9]{20,}|rvt_[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{10,}\.|rt-\d+|"refresh_token"/;
 
 /** Every regex metacharacter escaped, so a host name is matched literally. */
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 async function envFor(mock: MockAuth): Promise<Record<string, string> & { TEST_DIRS: string }> {
-  // The real HOME stays (macOS finds the login keychain through it); every CLI directory is redirected via XDG_*.
+  // The real HOME stays (macOS finds the login keychain through it); every CLI directory is redirected (XDG_* on
+  // Linux / macOS, APPDATA / LOCALAPPDATA on Windows).
   const home = await mkdtemp(join(tmpdir(), 'revlogin-'));
   return {
     TEST_DIRS: home,
-    XDG_CONFIG_HOME: join(home, 'config'),
-    XDG_STATE_HOME: join(home, 'state'),
-    XDG_CACHE_HOME: join(home, 'cache'),
+    ...cliDirs(home),
     REVITION_HOST: mock.apiHost,
     REVITION_AUTH_ISSUER: mock.issuer,
     REVITION_AUTH_CLIENT_ID: CLIENT_ID,
@@ -87,8 +89,8 @@ describe('T1.3.1 / T1.3.2 / T1.3.4 / T1.3.6 login, logout and CI auth through th
       for (const text of [run.stdout, run.stderr, (pages[2] as { body: string }).body]) assert.doesNotMatch(text, TOKEN_SHAPES);
       // T1.3.2 AC1 spy: without --device the device endpoints are never called
       assert.ok(!mock.idpLog.some((r) => r.path === '/oauth/device/code'));
-      // T1.3.3 AC4: the state, config and cache directories hold no token
-      for (const dir of ['state', 'config', 'cache']) {
+      // T1.3.3 AC4: the state, config and cache directories hold no token (XDG_* and the Windows APPDATA dirs)
+      for (const dir of CLI_DIR_NAMES) {
         const files = await readdir(join(env['TEST_DIRS'] ?? '', dir), { recursive: true }).catch(() => []);
         for (const f of files) {
           const text = await readFile(join(env['TEST_DIRS'] ?? '', dir, String(f)), 'utf8').catch(() => '');
@@ -162,7 +164,7 @@ describe('T1.3.1 / T1.3.2 / T1.3.4 / T1.3.6 login, logout and CI auth through th
         assert.equal(r.code, 0, `${args.join(' ')}: ${r.stderr}`);
       }
       assert.ok(mock.apiLog.every((r) => !r.path.startsWith('/api/v1/foundry/dev/') || r.headers.authorization === `Bearer rvt_${'A'.repeat(40)}` || r.method === 'POST'));
-      for (const dir of ['state', 'config', 'cache']) {
+      for (const dir of CLI_DIR_NAMES) {
         assert.deepEqual(await readdir(join(env.TEST_DIRS, dir)).catch(() => []), [], `${dir} must stay untouched`);
       }
       // --with-token: there is no flag that takes the token; a TTY-less empty stdin is refused as malformed

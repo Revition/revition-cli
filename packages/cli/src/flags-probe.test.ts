@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { cliDirs, cliPathsOf } from './test-fixtures/cli-dirs.js';
 import { startMockAuth } from './test-fixtures/mock-auth.js';
 import { CLI_BIN, runCli } from './test-fixtures/spawn-cli.js';
 
@@ -12,10 +13,11 @@ const FLAG = 'cli-flag-probe';
 
 async function dirs(cache: Record<string, boolean> | null): Promise<Record<string, string>> {
   const root = await mkdtemp(join(tmpdir(), 'revprobe-'));
-  const d = { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+  const d = { ...cliDirs(root) };
   if (cache !== null) {
-    await mkdir(join(d.XDG_CACHE_HOME, 'revition'), { recursive: true });
-    await writeFile(join(d.XDG_CACHE_HOME, 'revition', 'flags-default.json'), JSON.stringify({ fetchedAt: Date.now(), ttl: 3600, flags: cache }));
+    const { cacheDir } = cliPathsOf(d);
+    await mkdir(cacheDir, { recursive: true });
+    await writeFile(join(cacheDir, 'flags-default.json'), JSON.stringify({ fetchedAt: Date.now(), ttl: 3600, flags: cache }));
   }
   return d;
 }
