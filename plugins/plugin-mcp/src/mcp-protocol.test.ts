@@ -8,7 +8,7 @@ import { after, before, describe, it } from 'node:test';
 import { MCP_PROTOCOL_VERSION } from './server.js';
 import { getDefaultEnvironment } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-import { CLI_BIN, connect, ok, PAT, startMockPlatform, type MockPlatform } from './test-fixtures/harness.js';
+import { CLI_BIN, connect, INITIALIZE_TIMEOUT_MS, ok, PAT, startMockPlatform, type MockPlatform } from './test-fixtures/harness.js';
 
 /**
  * T3.2.2 - protocol conformance: the official MCP SDK client (the conformance harness) drives the real
@@ -27,7 +27,7 @@ async function raw(host: string, lines: readonly string[], want: number): Promis
   let stderr = '';
   child.stderr.on('data', (c: Buffer) => (stderr += c.toString('utf8')));
   const done = new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`timeout: stdout=${buf} stderr=${stderr}`)), 20_000);
+    const timer = setTimeout(() => reject(new Error(`timeout: stdout=${buf} stderr=${stderr}`)), Math.max(20_000, INITIALIZE_TIMEOUT_MS - 40_000));
     child.stdout.on('data', (c: Buffer) => {
       buf += c.toString('utf8');
       let i: number;

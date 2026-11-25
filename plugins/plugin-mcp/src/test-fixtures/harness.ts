@@ -63,6 +63,14 @@ export async function startMockPlatform(routes: Routes): Promise<MockPlatform> {
 
 export const ok = (body: unknown): Answer => ({ status: 200, body });
 
+/**
+ * How long a test waits for the server's `initialize` answer. The SDK's default is 60 s; on windows-latest the server
+ * DID answer (two conformance tests passed at 72 s and 120 s) but a cold `revition mcp serve` under the parallel suite
+ * (pnpm -r + node --test file concurrency on a 4-vCPU runner) took longer than 60 s, so `initialize` timed out with
+ * -32001. Windows gets 180 s; every other OS keeps the SDK default. An exported constant so the raw test uses the same.
+ */
+export const INITIALIZE_TIMEOUT_MS = process.platform === 'win32' ? 180_000 : 60_000;
+
 /** An MCP client (the official SDK) connected to `revition mcp serve <flags>` under a PAT against `host`. */
 export async function connect(host: string, flags: readonly string[] = []): Promise<{ client: Client; close: () => Promise<void> }> {
   const root = await mkdtemp(join(tmpdir(), 'revmcp-'));
@@ -85,7 +93,7 @@ export async function connect(host: string, flags: readonly string[] = []): Prom
   });
   const client = new Client({ name: 'revition-mcp-test', version: '0.0.0' });
   try {
-    await client.connect(transport);
+    await client.connect(transport, { timeout: INITIALIZE_TIMEOUT_MS });
   } catch (e) {
     await transport.close().catch(() => undefined);
     throw new Error(`${e instanceof Error ? e.message : String(e)}; server stderr: ${stderr === '' ? '(none)' : stderr}`, { cause: e });
