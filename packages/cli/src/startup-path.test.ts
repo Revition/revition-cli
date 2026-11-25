@@ -3,13 +3,16 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { infoOnlyRun } from './startup-path.js';
 import { CLI_BIN, FIXTURE_RUN, runCli } from './test-fixtures/spawn-cli.js';
 
 /** A file: URL: a Windows path is not a valid --import specifier (ERR_UNSUPPORTED_ESM_URL_SCHEME, PR #11 run 45564271218). */
 const RECORDER = new URL('./test-fixtures/record-loads.mjs', import.meta.url).href;
+/** bin/run's start before the startup bundle (unbundled @oclif/core), and the help-class parity child. */
+const UNBUNDLED_RUN = fileURLToPath(new URL('./test-fixtures/unbundled-run.mjs', import.meta.url));
+const HELP_PARITY = fileURLToPath(new URL('./test-fixtures/help-parity.mjs', import.meta.url));
 /** The full core entry and the libraries that load only on first use (packages/core/src/lazy-deps.ts LAZY_PACKAGES). */
 const FULL_CORE = /\/packages\/core\/dist\/index\.js$|\/@revition\/cli-core\/dist\/index\.js$/u;
 const LAZY = /\/node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:undici|@sigstore\/(?:bundle|protobuf-specs|verify)|@napi-rs\/keyring)\//u;
@@ -59,9 +62,37 @@ describe('[CLI-T1.1.1-AC6] the startup path loads only what --version / --help n
 
   it('[CLI-T1.1.1-AC6] `revition --help` loads neither the full core, the lazy libraries nor zod', async () => {
     const loads = await loadsOf(CLI_BIN, ['--help']);
-    assert.ok(loads.some((u) => u.endsWith('/dist/help.js')), 'the help class ran');
-    assert.ok(loads.some((u) => u.endsWith('/flags/flag-cache.js')), 'help read the flag cache');
     assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u) || ZOD.test(u)), []);
+  });
+
+  // windows-latest: --help 537 ms median through ~110 module files (PR #11). The root help now runs oclif, the help
+  // class and the flag cache it reads from ONE bundled file (scripts/bundle-startup.mjs, as oclif's plugin-test-esbuild).
+  it('[CLI-T1.1.1-AC6] the root help runs from the startup bundle: no @oclif/core module file is loaded', async () => {
+    for (const args of [['--help'], []]) {
+      const loads = await loadsOf(CLI_BIN, args);
+      assert.ok(loads.some((u) => u.endsWith('/dist/bundle/startup.js')), `the bundle ran (${args.join(' ')})`);
+      assert.deepEqual(loads.filter((u) => u.includes('/@oclif/core/')), [], args.join(' '));
+      // bin/run, the bundle, and the init hook with its two imports (unbundled ~113 module files, macOS).
+      const files = loads.filter((u) => u.startsWith('file:'));
+      assert.ok(files.length <= 6, `${files.length} module files: ${files.join(', ')}`);
+    }
+  });
+
+  it('[CLI-T1.1.1-AC6] the bundle changes no output: --help, no arguments and --version byte-identical to unbundled oclif', async () => {
+    for (const args of [['--help'], [], ['--version']]) {
+      const bundled = await runCli(CLI_BIN, args);
+      const unbundled = await runCli(UNBUNDLED_RUN, args);
+      assert.deepEqual([bundled.code, bundled.stdout, bundled.stderr], [unbundled.code, unbundled.stdout, unbundled.stderr], args.join(' '));
+      assert.notEqual(bundled.stdout, '', args.join(' '));
+    }
+  });
+
+  it('[CLI-T1.1.1-AC6] the help of the root, every topic and every command (plugins included) is unchanged by the bundled help class', async () => {
+    const r = await runCli(HELP_PARITY, []);
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout) as { cases: number; commands: number; mismatches: unknown[] };
+    assert.ok(out.commands >= 90, `${out.commands} commands loaded (the CLI and its 4 plugins)`);
+    assert.deepEqual(out.mismatches, [], `${out.mismatches.length} of ${out.cases} help pages differ`);
   });
 
   it('[CLI-T1.1.1-AC6] control: a command run DOES load the core (the setup is only skipped for version/help)', async () => {

@@ -19,7 +19,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "build": "tsc -p tsconfig.build.json && node scripts/oclif-manifest.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/bundle-startup.mjs && node scripts/oclif-manifest.mjs",
     "reference":"node scripts/command-reference.mjs",
     "reference:check": "node scripts/command-reference.mjs --check",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "ajv": "8.18.0",
+    "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
@@ -67,7 +68,10 @@
         "description": "Verified third-party plugins: search, install, run, update, remove."
       }
     },
-    "helpClass": "./dist/help.js",
+    "helpClass": {
+      "target": "./dist/bundle/startup.js",
+      "identifier": "RevitionHelp"
+    },
     "hooks": {
       "init": "./dist/hooks/init.js",
       "prerun": "./dist/hooks/prerun.js",
