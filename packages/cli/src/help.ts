@@ -1,6 +1,9 @@
 import type { CommandMeta } from '@revition/cli-core';
 import { experimentalOptIn } from '@revition/cli-core/startup';
-import { Help, type Command } from '@oclif/core';
+import type { Command } from '@oclif/core';
+// The help entry, not the package index: the index loads every oclif module plus semver (47 files) on each --help
+// (T1.1.1 AC6, 300 ms on the 3 OS).
+import { Help } from '@oclif/core/help';
 
 import { enabledFlags } from './enabled-flags.js';
 

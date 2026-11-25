@@ -62,6 +62,8 @@ describe('T1.1.1 a command is a module: the fixture plugin', () => {
     // suite-wide telemetry spy (a TEST-ONLY preload in NODE_OPTIONS, scripts/test-all.mjs) is left out of these runs.
     const env = { NODE_OPTIONS: (process.env['NODE_OPTIONS'] ?? '').replace(/--import=\S*telemetry-spy\.mjs/u, '').trim() };
     await runCli(CLI_BIN, ['--version'], { env });
+    // Both medians are measured before either is judged, so one run reports both numbers.
+    const medians: string[] = [];
     for (const args of [['--version'], ['--help']]) {
       const runs: number[] = [];
       for (let i = 0; i < 5; i++) {
@@ -70,8 +72,11 @@ describe('T1.1.1 a command is a module: the fixture plugin', () => {
         runs.push(r.ms);
       }
       const median = runs.sort((a, b) => a - b)[2] ?? Infinity;
-      assert.ok(median <= 300, `${args.join(' ')} median ${median.toFixed(0)} ms > 300 ms`);
+      medians.push(`${args.join(' ')} median ${median.toFixed(0)} ms`);
+      if (median > 300) medians.push('OVER');
     }
+    process.stdout.write(`# startup ${medians.join('; ')}\n`);
+    assert.ok(!medians.includes('OVER'), `${medians.join('; ')} (budget 300 ms)`);
   });
 
   it('[CLI-T1.1.1-AC6] Ctrl-C during a long command exits 11 within 200 ms', async () => {

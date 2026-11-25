@@ -3,6 +3,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { pathToFileURL } from 'node:url';
 
 import { infoOnlyRun } from './startup-path.js';
 import { CLI_BIN, FIXTURE_RUN, runCli } from './test-fixtures/spawn-cli.js';
@@ -42,8 +43,18 @@ describe('[CLI-T1.1.1-AC6] the startup path loads only what --version / --help n
 
   it('[CLI-T1.1.1-AC6] `revition --version` loads neither the full core, the lazy libraries nor zod', async () => {
     const loads = await loadsOf(CLI_BIN, ['--version']);
-    assert.ok(loads.some((u) => u.includes('@oclif/core')), 'the recorder saw the run');
+    assert.ok(loads.length > 0, 'the recorder saw the run');
     assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u) || ZOD.test(u)), []);
+    // bin/run's fast path: off Linux, --version loads no oclif at all (Linux keeps oclif for its WSL platform name).
+    if (process.platform !== 'linux') assert.deepEqual(loads.filter((u) => u.includes('@oclif/core')), []);
+  });
+
+  it('[CLI-T1.1.1-AC6] the --version fast path prints exactly the line oclif prints (its config.userAgent)', async () => {
+    const r = await runCli(CLI_BIN, ['--version']);
+    assert.equal(r.code, 0, r.stderr);
+    const { Config } = await import('@oclif/core');
+    const config = await Config.load(pathToFileURL(CLI_BIN).href);
+    assert.equal(r.stdout, `${config.userAgent}\n`);
   });
 
   it('[CLI-T1.1.1-AC6] `revition --help` loads neither the full core, the lazy libraries nor zod', async () => {
