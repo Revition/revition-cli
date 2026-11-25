@@ -11,7 +11,8 @@ import { describe, it } from 'node:test';
 
 import * as legacy from '../../../legacy/src/local-run.js';
 
-import { buildProgram, parseRun } from './local/local-run.js';
+import { buildProgram, parseRun, preloadSpecifier } from './local/local-run.js';
+import { interruptible, pressCtrlC } from './test-fixtures/ctrl-c.js';
 import { CLI_BIN, dirs, runCli } from './test-fixtures/mock-platform.js';
 
 /** Nothing listens here: any accidental platform call would fail the run. */
@@ -115,11 +116,11 @@ describe('T2.1.3 revition test (local, stubbed SDK, offline)', () => {
 
   it('[CLI-T2.1.3-AC3] --watch re-runs on a change, until Ctrl-C', async () => {
     const dir = project([greet], FIXTURES);
-    const child = spawn(process.execPath, [CLI_BIN, 'test', '--watch'], {
+    const child = spawn(process.execPath, [CLI_BIN, 'test', '--watch'], interruptible({
       cwd: dir,
       env: { ...process.env, ...(await dirs()), NO_COLOR: '1', REVITION_NO_UPDATE_CHECK: '1' },
       stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    }));
     let err = '';
     child.stderr.on('data', (d: Buffer) => (err += d.toString()));
     const until = async (re: RegExp): Promise<void> => {
@@ -130,7 +131,7 @@ describe('T2.1.3 revition test (local, stubbed SDK, offline)', () => {
     writeFileSync(join(dir, 'capabilities', 'greet', 'tests.json'), JSON.stringify([{ name: 'changed', input: { name: 'Z' }, expect: { hello: 'Q' } }]));
     await until(/--- re-run ---[\s\S]*FAIL greet: changed/);
     const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
-    child.kill('SIGINT');
+    pressCtrlC(child);
     assert.equal(await exited, 11);
   });
 
@@ -143,5 +144,14 @@ describe('T2.1.3 revition test (local, stubbed SDK, offline)', () => {
     assert.deepEqual(env.data.cases.map((c) => [c.capability, c.name, c.passed]), [['greet', 'from input', true], ['greet', 'from the user', true]]);
     assert.equal(env.data.passed, 2);
     assert.equal(env.data.failed, 0);
+  });
+});
+
+describe('T2.1.3 / T2.1.4 the local runner on every OS', () => {
+  it('[CLI-T2.1.4-AC1] the network-block preload is passed to --import as a file: URL (a Windows path is not a specifier)', () => {
+    // windows-latest CI: `--import C:\\...\\no-network.mjs` -> ERR_UNSUPPORTED_ESM_URL_SCHEME, so every local test FAILED.
+    assert.equal(preloadSpecifier('C:\\Users\\dev\\AppData\\Local\\Temp\\revition-test-1\\no-network.mjs', true), 'file:///C:/Users/dev/AppData/Local/Temp/revition-test-1/no-network.mjs');
+    assert.equal(preloadSpecifier('/tmp/revition-test-1/no-network.mjs', false), 'file:///tmp/revition-test-1/no-network.mjs');
+    assert.match(preloadSpecifier(join(tmpdir(), 'no-network.mjs')), /^file:\/\/\//u);
   });
 });

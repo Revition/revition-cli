@@ -13,6 +13,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { fixtureSdkPrelude, type FixtureSdkSpec } from './fixture-sdk.js';
 
@@ -142,6 +143,14 @@ export interface LocalRunOptions {
   readonly python?: string;
 }
 
+/**
+ * `--import` takes a module SPECIFIER, not a path: a Windows absolute path (`C:\\...`) parses as a URL with scheme `c:`
+ * and Node refuses it (ERR_UNSUPPORTED_ESM_URL_SCHEME, the windows-latest CI run). A file: URL is valid on every OS.
+ */
+export function preloadSpecifier(path: string, windows: boolean = process.platform === 'win32'): string {
+  return pathToFileURL(path, { windows }).href;
+}
+
 /** The environment the code gets: nothing of the developer's shell but PATH. */
 export function childEnv(): NodeJS.ProcessEnv {
   return { PATH: process.env['PATH'] ?? '' };
@@ -165,7 +174,7 @@ export function runLocally(cap: LocalCapability, input: unknown, sdk: FixtureSdk
   const [cmd, args] =
     language === 'python'
       ? [opts.python ?? 'python3', [file]]
-      : [process.execPath, ['--experimental-strip-types', '--no-warnings', '--import', preload, file]];
+      : [process.execPath, ['--experimental-strip-types', '--no-warnings', '--import', preloadSpecifier(preload), file]];
   return new Promise((resolveRun) => {
     const child = spawn(cmd, args, { env: childEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';

@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { MCP_PROTOCOL_VERSION } from './server.js';
+import { getDefaultEnvironment } from '@modelcontextprotocol/sdk/client/stdio.js';
+
 import { CLI_BIN, connect, ok, PAT, startMockPlatform, type MockPlatform } from './test-fixtures/harness.js';
 
 /**
@@ -17,12 +19,15 @@ const APP = { appId: 'dapp_mine', developerId: 'auth0|d', manifestRef: 'plugin:/
 /** Raw lines in, raw lines out (until `want` answers arrived). */
 async function raw(host: string, lines: readonly string[], want: number): Promise<Record<string, unknown>[]> {
   const root = await mkdtemp(join(tmpdir(), 'revmcp-raw-'));
-  const env = { PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), REVITION_HOST: host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' };
+  // The OS variables a child needs (Windows: SYSTEMROOT, TEMP, USERPROFILE...), as the SDK client passes them.
+  const env = { ...getDefaultEnvironment(), PATH: process.env['PATH'] ?? '', HOME: root, XDG_CONFIG_HOME: join(root, 'c'), XDG_STATE_HOME: join(root, 's'), XDG_CACHE_HOME: join(root, 'k'), REVITION_HOST: host, REVITION_TOKEN: PAT, REVITION_NO_UPDATE_CHECK: '1' };
   const child = spawn(process.execPath, [CLI_BIN, 'mcp', 'serve'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
   const out: Record<string, unknown>[] = [];
   let buf = '';
+  let stderr = '';
+  child.stderr.on('data', (c: Buffer) => (stderr += c.toString('utf8')));
   const done = new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`timeout: ${buf}`)), 20_000);
+    const timer = setTimeout(() => reject(new Error(`timeout: stdout=${buf} stderr=${stderr}`)), 20_000);
     child.stdout.on('data', (c: Buffer) => {
       buf += c.toString('utf8');
       let i: number;

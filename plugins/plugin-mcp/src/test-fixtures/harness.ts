@@ -77,7 +77,18 @@ export async function connect(host: string, flags: readonly string[] = []): Prom
     REVITION_NO_UPDATE_CHECK: '1',
   };
   const transport = new StdioClientTransport({ command: process.execPath, args: [CLI_BIN, 'mcp', 'serve', ...flags], env, stderr: 'pipe' });
+  // The server's stderr is kept: when it never answers (windows-latest CI: initialize timed out, no stdout at all), the
+  // failure carries what the server printed, so the run names where it stopped instead of a bare -32001.
+  let stderr = '';
+  transport.stderr?.on('data', (c: Buffer) => {
+    stderr += c.toString('utf8');
+  });
   const client = new Client({ name: 'revition-mcp-test', version: '0.0.0' });
-  await client.connect(transport);
+  try {
+    await client.connect(transport);
+  } catch (e) {
+    await transport.close().catch(() => undefined);
+    throw new Error(`${e instanceof Error ? e.message : String(e)}; server stderr: ${stderr === '' ? '(none)' : stderr}`, { cause: e });
+  }
   return { client, close: () => client.close() };
 }

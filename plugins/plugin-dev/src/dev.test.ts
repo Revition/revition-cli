@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { ignoreMatcher, secretIn, uploadSet } from './dev/uploader.js';
+import { interruptible, pressCtrlC } from './test-fixtures/ctrl-c.js';
 import { CLI_BIN, PAT, dirs, err, ok, runCli, startMockPlatform, type MockPlatform } from './test-fixtures/mock-platform.js';
 
 const FILES: Record<string, string> = {
@@ -69,7 +70,7 @@ describe('T2.1.4 dev --sandbox', () => {
     try {
       const dir = await linkedProject();
       const env = { ...process.env, ...(await dirs()), NO_COLOR: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_HOST: p.host, REVITION_TOKEN: PAT };
-      const child = spawn(process.execPath, [CLI_BIN, 'dev', '--sandbox', '--run', 'hello', '--yes'], { cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(process.execPath, [CLI_BIN, 'dev', '--sandbox', '--run', 'hello', '--yes'], interruptible({ cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] }));
       let stderr = '';
       child.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
       const until = async (re: RegExp, ms = 15_000): Promise<void> => {
@@ -81,7 +82,7 @@ describe('T2.1.4 dev --sandbox', () => {
       writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
       await until(/saved version 5/);
       const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
-      child.kill('SIGINT');
+      pressCtrlC(child);
       assert.equal(await exited, 11);
       assert.equal(p.log.filter((x) => x.method === 'PUT').length, 2, 'one save per change');
       assert.equal(p.log.at(-1)?.method, 'DELETE');
@@ -144,11 +145,11 @@ describe('T2.1.4 dev --sandbox', () => {
 
   it('[CLI-T2.1.4-AC1] a local loop re-runs on save, until Ctrl-C', async () => {
     const dir = await linkedProject();
-    const child = spawn(process.execPath, [CLI_BIN, 'dev', '--local', '--yes'], {
+    const child = spawn(process.execPath, [CLI_BIN, 'dev', '--local', '--yes'], interruptible({
       cwd: dir,
       env: { ...process.env, ...(await dirs()), NO_COLOR: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_HOST: '127.0.0.1:9', REVITION_TOKEN: PAT },
       stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    }));
     let err = '';
     child.stderr.on('data', (d: Buffer) => (err += d.toString()));
     const until = async (re: RegExp): Promise<void> => {
@@ -159,7 +160,7 @@ describe('T2.1.4 dev --sandbox', () => {
     writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
     await until(/--- saved \(local run 2\) ---[\s\S]*FAIL hello: echo/);
     const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
-    child.kill('SIGINT');
+    pressCtrlC(child);
     assert.equal(await exited, 11);
   });
 });
