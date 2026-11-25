@@ -1,7 +1,9 @@
 {
   "name": "@revition/cli",
   "version": "0.1.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The Revition command-line interface",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,7 +14,8 @@
   "files": [
     "bin",
     "dist",
-    "oclif.manifest.json"
+    "oclif.manifest.json",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

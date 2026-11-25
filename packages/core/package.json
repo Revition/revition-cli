@@ -1,7 +1,9 @@
 {
   "name": "@revition/cli-core",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The Revition CLI core: command contract, config, output, errors, redaction, transport",
   "license": "Apache-2.0",
   "type": "module",
@@ -20,7 +22,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

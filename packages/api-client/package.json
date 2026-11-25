@@ -1,7 +1,9 @@
 {
   "name": "@revition/api-client",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The typed Revition CLI API client, generated from openapi/v1.json (never hand-edited)",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,7 +14,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

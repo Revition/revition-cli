@@ -1,7 +1,9 @@
 {
   "name": "@revition/plugin-agents",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Revition CLI agents as code: the definition file, validate, list, pull, diff, push, test, status, runs",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,7 +15,8 @@
   },
   "files": [
     "dist",
-    "oclif.manifest.json"
+    "oclif.manifest.json",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"
