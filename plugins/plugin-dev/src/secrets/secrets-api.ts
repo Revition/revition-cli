@@ -23,19 +23,34 @@ export interface SecretsList {
 
 const base = (appId: string | null): string => (appId === null ? '/runtime-secrets' : `/dev/apps/${seg(appId)}/secrets`);
 
-export async function listSecrets(api: ApiClient, appId: string | null): Promise<SecretsList> {
-  const body = (await api.request<{ names: ReadonlyArray<string | SecretName>; firstSetCost?: SecretsList['firstSetCost'] }>({ method: 'GET', path: base(appId) })).body;
+/**
+ * T2.2.3 amended 2026-11-24 (ruling #313): the environment a WORKSPACE secret lives in. The workspace route takes it
+ * (foundry-routes-handler.ts secretEnv: query `env` on GET / DELETE, body `env` on PUT; absent = prod). An app's
+ * secrets are not environment-scoped, so --env with --app is refused (never silently ignored). PURE.
+ */
+export const SECRET_ENVS = ['dev', 'test', 'staging', 'prod'] as const;
+export function secretEnvOf(appId: string | null, env: unknown): string | undefined {
+  if (env === undefined || env === null) return undefined;
+  if (appId !== null) throw usageError('SECRET_ENV_APP', "An app's secrets have no environment: --env applies to the workspace's secrets only.", 'Drop --env, or drop --app.');
+  return String(env);
+}
+const envQuery = (env: string | undefined): Record<string, string> | undefined => (env === undefined ? undefined : { env });
+
+export async function listSecrets(api: ApiClient, appId: string | null, env?: string): Promise<SecretsList> {
+  const query = envQuery(env);
+  const body = (await api.request<{ names: ReadonlyArray<string | SecretName>; firstSetCost?: SecretsList['firstSetCost'] }>({ method: 'GET', path: base(appId), ...(query === undefined ? {} : { query }) })).body;
   // Names only, whatever else the route carries.
   const names = (body.names ?? []).map((n) => (typeof n === 'string' ? { name: n, updatedAt: null } : { name: n.name, updatedAt: n.updatedAt ?? null }));
   return { scope: appId === null ? 'workspace' : 'app', appId, names, firstSetCost: body.firstSetCost ?? null };
 }
 
-export async function putSecret(api: ApiClient, appId: string | null, name: string, value: string): Promise<void> {
-  await api.request({ method: 'PUT', path: `${base(appId)}/${seg(name)}`, body: { value } });
+export async function putSecret(api: ApiClient, appId: string | null, name: string, value: string, env?: string): Promise<void> {
+  await api.request({ method: 'PUT', path: `${base(appId)}/${seg(name)}`, body: env === undefined ? { value } : { value, env } });
 }
 
-export async function deleteSecret(api: ApiClient, appId: string | null, name: string): Promise<void> {
-  await api.request({ method: 'DELETE', path: `${base(appId)}/${seg(name)}` });
+export async function deleteSecret(api: ApiClient, appId: string | null, name: string, env?: string): Promise<void> {
+  const query = envQuery(env);
+  await api.request({ method: 'DELETE', path: `${base(appId)}/${seg(name)}`, ...(query === undefined ? {} : { query }) });
 }
 
 /** The value: piped stdin (read to EOF; a certificate keeps its lines) or a hidden prompt on a terminal. */

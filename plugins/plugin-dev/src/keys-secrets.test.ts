@@ -130,6 +130,29 @@ describe('T2.2.3 secrets', () => {
     }
   });
 
+  it('[CLI-T2.2.3-AC1] [CLI-T2.2.3-AC2] --env picks the workspace secret\'s environment (ruling #313); no flag sends none (prod); --env with --app is refused', async () => {
+    const p = await platform();
+    try {
+      const env = await dirs();
+      assert.equal((await runCli(['secrets', 'set', 'DEV_KEY', '--env', 'dev', '--yes'], { cwd: tmpdir(), host: p.host, env, input: 'v1\n' })).code, 0);
+      assert.deepEqual(p.log.filter((x) => x.method === 'PUT').at(-1)?.body, { value: 'v1', env: 'dev' });
+      assert.equal((await runCli(['secrets', 'set', 'PROD_KEY', '--yes'], { cwd: tmpdir(), host: p.host, env, input: 'v2\n' })).code, 0);
+      assert.deepEqual(p.log.filter((x) => x.method === 'PUT').at(-1)?.body, { value: 'v2' }, 'no --env: the route default (prod) is unchanged');
+      assert.equal((await runCli(['secrets', 'list', '--env', 'dev', '--json'], { cwd: tmpdir(), host: p.host, env })).code, 0);
+      assert.equal(p.log.filter((x) => x.method === 'GET' && x.path === '/runtime-secrets').at(-1)?.query, '?env=dev');
+      assert.equal((await runCli(['secrets', 'unset', 'DEV_KEY', '--env', 'dev', '--yes'], { cwd: tmpdir(), host: p.host, env })).code, 0);
+      assert.equal(p.log.filter((x) => x.method === 'DELETE').at(-1)?.query, '?env=dev');
+      const before = p.log.length;
+      const refused = await runCli(['secrets', 'set', 'K', '--app', 'dapp_mine', '--env', 'dev', '--yes'], { cwd: tmpdir(), host: p.host, env, input: 'v\n' });
+      assert.equal(refused.code, 2);
+      assert.match(refused.stderr, /--env applies to the workspace's secrets only/);
+      assert.equal(p.log.slice(before).filter((x) => x.method === 'PUT').length, 0, 'nothing is set');
+      assert.notEqual((await runCli(['secrets', 'set', 'K', '--env', 'qa', '--yes'], { cwd: tmpdir(), host: p.host, env, input: 'v\n' })).code, 0, 'an unknown environment is refused');
+    } finally {
+      p.close();
+    }
+  });
+
   it('[CLI-T2.2.3-AC3] set via stdin works and the value appears in no sink; [CLI-T2.2.3-AC4] the first app secret shows its cost first', async () => {
     const value = 'value-that-must-not-leak-9f3c';
     const p = await platform({ firstSetCost: { monthlyUsd: 0.4, note: 'one secret store per developer' } });

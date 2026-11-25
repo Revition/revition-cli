@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core';
 import { RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
 import { devApi } from '../../api.js';
-import { deleteSecret } from '../../secrets/secrets-api.js';
+import { deleteSecret, SECRET_ENVS, secretEnvOf } from '../../secrets/secrets-api.js';
 
 interface Out {
   readonly name: string;
@@ -23,12 +23,15 @@ export default class SecretsUnset extends RevitionCommand<Out> {
     stability: 'stable',
   };
   static override args = { name: Args.string({ required: true, description: 'The secret name.' }) };
-  static override flags = { app: Flags.string({ description: "An app's secret instead of the workspace's." }) };
+  static override flags = {
+    app: Flags.string({ description: "An app's secret instead of the workspace's." }),
+    env: Flags.string({ options: [...SECRET_ENVS], description: "The workspace secret's environment (dev, test, staging, prod); default prod." }),
+  };
 
   protected async run2(ctx: CommandContext): Promise<Out> {
     const name = String(ctx.args['name']);
     const app = typeof ctx.commandFlags['app'] === 'string' ? ctx.commandFlags['app'] : null;
-    await deleteSecret(await devApi(ctx), app, name);
+    await deleteSecret(await devApi(ctx), app, name, secretEnvOf(app, ctx.commandFlags['env']));
     return { name, appId: app };
   }
 

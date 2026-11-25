@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core';
 import { RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
 import { devApi } from '../../api.js';
-import { listSecrets, putSecret, readSecretValue } from '../../secrets/secrets-api.js';
+import { listSecrets, putSecret, readSecretValue, SECRET_ENVS, secretEnvOf } from '../../secrets/secrets-api.js';
 
 interface Out {
   readonly name: string;
@@ -25,7 +25,10 @@ export default class SecretsSet extends RevitionCommand<Out> {
   };
   // The NAME only: there is deliberately no flag or argument for the value (T1.3.6, T2.2.3 AC1).
   static override args = { name: Args.string({ required: true, description: 'The secret name.' }) };
-  static override flags = { app: Flags.string({ description: "An app's secret instead of the workspace's." }) };
+  static override flags = {
+    app: Flags.string({ description: "An app's secret instead of the workspace's." }),
+    env: Flags.string({ options: [...SECRET_ENVS], description: "The workspace secret's environment (dev, test, staging, prod); default prod." }),
+  };
 
   /** The cost of the first app secret (its store), shown before the confirmation when the platform passes one on. */
   protected override async beforeConfirm(ctx: CommandContext): Promise<void> {
@@ -38,8 +41,9 @@ export default class SecretsSet extends RevitionCommand<Out> {
   protected async run2(ctx: CommandContext): Promise<Out> {
     const name = String(ctx.args['name']);
     const app = typeof ctx.commandFlags['app'] === 'string' ? ctx.commandFlags['app'] : null;
+    const env = secretEnvOf(app, ctx.commandFlags['env']);
     const value = await readSecretValue(ctx);
-    await putSecret(await devApi(ctx), app, name, value);
+    await putSecret(await devApi(ctx), app, name, value, env);
     return { name, scope: app === null ? 'workspace' : 'app', appId: app };
   }
 
