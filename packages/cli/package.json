@@ -31,12 +31,12 @@
     "@revition/plugin-assist": "workspace:*",
     "@revition/plugin-dev": "workspace:*",
     "@revition/plugin-mcp": "workspace:*",
+    "esbuild": "0.28.2",
     "undici": "7.30.1"
   },
   "devDependencies": {
     "@types/node": "25.5.0",
     "ajv": "8.18.0",
-    "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
