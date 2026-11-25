@@ -55,7 +55,7 @@ describe('assist on a real terminal (PTY)', { skip: SKIP }, () => {
     const [bin, argv] = underPty(['assist', 'make the starter test pass: fix src/greet.js', '--mode', 'edit', '--budget', BUDGET]);
     const child = spawn(bin, argv, {
       cwd: root,
-      env: { ...E, REVITION_HOST: HOST, REVITION_TOKEN: TOKEN, REVITION_ACCESSIBLE: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_TELEMETRY: '0', NO_COLOR: '1', TERM: 'xterm-256color', XDG_CONFIG_HOME: join(root, '.c'), XDG_STATE_HOME: join(root, '.s'), XDG_CACHE_HOME: join(root, '.k') },
+      env: { ...E, REVITION_HOST: HOST, REVITION_TOKEN: TOKEN, REVITION_ACCESSIBLE: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_TELEMETRY: '0', NO_COLOR: '1', TERM: 'xterm-256color', XDG_CONFIG_HOME: join(root, '.c'), XDG_STATE_HOME: join(root, '.s'), XDG_CACHE_HOME: join(root, '.k'), APPDATA: join(root, '.a'), LOCALAPPDATA: join(root, '.l') },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let out = '';

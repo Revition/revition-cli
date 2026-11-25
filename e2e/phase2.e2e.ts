@@ -37,7 +37,14 @@ const SKIP = HOST === '' || TOKEN === '' ? 'set REVITION_E2E_HOST and REVITION_E
 const SECRET_VALUE = `phase2-${Date.now()}-value`;
 
 const root = mkdtempSync(join(tmpdir(), 'revition-phase2-'));
-const DIRS = { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+// APPDATA / LOCALAPPDATA: Windows ignores XDG_* (core config/paths.ts).
+const DIRS = {
+  XDG_CONFIG_HOME: join(root, 'config'),
+  XDG_STATE_HOME: join(root, 'state'),
+  XDG_CACHE_HOME: join(root, 'cache'),
+  APPDATA: join(root, 'appdata'),
+  LOCALAPPDATA: join(root, 'localappdata'),
+};
 const PROJECT = join(root, 'project');
 const captured: string[] = [];
 const spend: { step: string; quoteId: string; billedCredits: number | null }[] = [];
@@ -227,7 +234,7 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     const all = captured.join('\n');
     assert.equal(all.includes(TOKEN), false, 'the token value was printed');
     assert.equal(all.includes(SECRET_VALUE), false, 'the secret value was printed');
-    for (const f of [...filesUnder(DIRS.XDG_CONFIG_HOME), ...filesUnder(DIRS.XDG_STATE_HOME), ...filesUnder(DIRS.XDG_CACHE_HOME)]) {
+    for (const f of Object.values(DIRS).flatMap((d) => filesUnder(d))) {
       const text = readFileSync(f, 'utf8');
       assert.equal(text.includes(TOKEN) || text.includes(SECRET_VALUE), false, `a secret is stored in ${f}`);
     }

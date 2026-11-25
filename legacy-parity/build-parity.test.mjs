@@ -74,6 +74,8 @@ async function current(answer) {
           XDG_CONFIG_HOME: join(root, 'c'),
           XDG_STATE_HOME: join(root, 's'),
           XDG_CACHE_HOME: join(root, 'k'),
+          APPDATA: join(root, 'a'),
+          LOCALAPPDATA: join(root, 'l'),
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       });

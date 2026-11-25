@@ -205,6 +205,8 @@ describe('dress rehearsal: the incident drill (runbook steps 1 and 2), $0', () =
           XDG_CONFIG_HOME: join(dir, 'config'),
           XDG_STATE_HOME: join(dir, 'state'),
           XDG_CACHE_HOME: join(dir, 'cache'),
+          APPDATA: join(dir, 'appdata'),
+          LOCALAPPDATA: join(dir, 'localappdata'),
         });
         steps.push({ ...s, min });
         return s;

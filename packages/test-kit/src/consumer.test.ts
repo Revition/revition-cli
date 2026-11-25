@@ -49,6 +49,9 @@ function envFor(host: string): Record<string, string> {
     XDG_CONFIG_HOME: join(home, 'c'),
     XDG_STATE_HOME: join(home, 's'),
     XDG_CACHE_HOME: join(home, 'k'),
+    // Windows ignores XDG_* (core config/paths.ts): these keep the CLI out of the runner's real profile.
+    APPDATA: join(home, 'a'),
+    LOCALAPPDATA: join(home, 'l'),
     REVITION_HOST: host,
     REVITION_TOKEN: PAT,
     REVITION_NO_UPDATE_CHECK: '1',

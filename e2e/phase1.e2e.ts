@@ -26,7 +26,14 @@ const BIN = process.env['REVITION_CLI_BIN'] ?? fileURLToPath(new URL('../package
 const SKIP = HOST === '' || TOKEN === '' ? 'set REVITION_E2E_HOST and REVITION_E2E_TOKEN (a cli:read PAT of the test user)' : false;
 
 const root = mkdtempSync(join(tmpdir(), 'revition-phase1-'));
-const DIRS = { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+// APPDATA / LOCALAPPDATA: Windows ignores XDG_* (core config/paths.ts).
+const DIRS = {
+  XDG_CONFIG_HOME: join(root, 'config'),
+  XDG_STATE_HOME: join(root, 'state'),
+  XDG_CACHE_HOME: join(root, 'cache'),
+  APPDATA: join(root, 'appdata'),
+  LOCALAPPDATA: join(root, 'localappdata'),
+};
 const captured: string[] = [];
 
 interface Run {
@@ -129,7 +136,7 @@ describe('Phase 1 journey (automated, CI token)', { skip: SKIP || (EXPECT_426 !=
   it('[CLI-T1.6.1-AC1] leak suite: the token appears in no captured output and in no CLI file', () => {
     const all = captured.join('\n');
     assert.equal(all.includes(TOKEN), false, 'the token value was printed');
-    for (const f of [...filesUnder(DIRS.XDG_CONFIG_HOME), ...filesUnder(DIRS.XDG_STATE_HOME), ...filesUnder(DIRS.XDG_CACHE_HOME)]) {
+    for (const f of Object.values(DIRS).flatMap((d) => filesUnder(d))) {
       assert.equal(readFileSync(f, 'utf8').includes(TOKEN), false, `the token is stored in ${f}`);
     }
   });

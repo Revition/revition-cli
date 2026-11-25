@@ -51,6 +51,8 @@ function run(cmd: string, args: readonly string[], host: string, token: string =
         XDG_CONFIG_HOME: join(dir, 'config'),
         XDG_STATE_HOME: join(dir, 'state'),
         XDG_CACHE_HOME: join(dir, 'cache'),
+        APPDATA: join(dir, 'appdata'),
+        LOCALAPPDATA: join(dir, 'localappdata'),
         NIGHTLY_RETRY_SECONDS: '0',
         NIGHTLY_OUT_DIR: dir,
         GITHUB_OUTPUT: ghOut,

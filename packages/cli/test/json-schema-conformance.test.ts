@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { cliDirs } from '../src/test-fixtures/cli-dirs.js';
 import { assertConformsToSchema } from '../src/test-fixtures/json-conformance.js';
 import { startMockAuth } from '../src/test-fixtures/mock-auth.js';
 import { CLI_BIN, runCli } from '../src/test-fixtures/spawn-cli.js';
@@ -47,9 +48,9 @@ describe('T3.2.1 AC1 - the core commands: their --json output conforms to the pu
         const home = await mkdtemp(join(tmpdir(), 'core-conf-'));
         const env = {
           HOME: home,
-          XDG_CONFIG_HOME: join(home, 'c'),
-          XDG_STATE_HOME: join(home, 's'),
-          XDG_CACHE_HOME: join(home, 'k'),
+          // XDG_* and APPDATA / LOCALAPPDATA: on Windows `telemetry enable` otherwise wrote the runner's real profile
+          // and every later case sent telemetry with no opt-in (PR #11 run 45576763343, the suite-wide spy).
+          ...cliDirs(home),
           REVITION_HOST: mock.apiHost,
           REVITION_TOKEN: PAT,
           REVITION_NO_UPDATE_CHECK: '1',
@@ -71,7 +72,7 @@ describe('T3.2.1 AC1 - the core commands: their --json output conforms to the pu
     const mock = await startMockAuth();
     try {
       const home = await mkdtemp(join(tmpdir(), 'core-conf-l-'));
-      const env = { HOME: home, XDG_CONFIG_HOME: join(home, 'c'), XDG_STATE_HOME: join(home, 's'), XDG_CACHE_HOME: join(home, 'k'), REVITION_HOST: mock.apiHost, REVITION_NO_UPDATE_CHECK: '1' };
+      const env = { HOME: home, ...cliDirs(home), REVITION_HOST: mock.apiHost, REVITION_NO_UPDATE_CHECK: '1' };
       const r = await runCli(CLI_BIN, ['login', '--with-token', '--json'], { env, input: `${PAT}\n` });
       assert.equal(r.code, 0, r.stdout + r.stderr);
       assertConformsToSchema(r.stdout);
@@ -82,7 +83,7 @@ describe('T3.2.1 AC1 - the core commands: their --json output conforms to the pu
 
   it('[CLI-T3.2.1-AC1] profiles use / profiles remove --json (on a profile made for the test)', async () => {
     const home = await mkdtemp(join(tmpdir(), 'core-conf-p-'));
-    const env = { HOME: home, XDG_CONFIG_HOME: join(home, 'c'), XDG_STATE_HOME: join(home, 's'), XDG_CACHE_HOME: join(home, 'k'), REVITION_NO_UPDATE_CHECK: '1' };
+    const env = { HOME: home, ...cliDirs(home), REVITION_NO_UPDATE_CHECK: '1' };
     assert.equal((await runCli(CLI_BIN, ['config', 'set', 'profiles.work.host', 'api.revition.com'], { env })).code, 0);
     for (const argv of [['profiles', 'use', 'work'], ['profiles', 'remove', 'work', '--yes']]) {
       const r = await runCli(CLI_BIN, [...argv, '--json'], { env });

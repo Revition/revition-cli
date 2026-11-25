@@ -35,7 +35,14 @@ const BIN = E['REVITION_CLI_BIN'] ?? fileURLToPath(new URL('../packages/cli/bin/
 const SKIP = HOST === '' || TOKEN === '' || AGENT === '' ? 'set REVITION_E2E_HOST, REVITION_E2E_TOKEN (cli:read, cli:agents) and REVITION_E2E_AGENT' : false;
 
 const root = mkdtempSync(join(tmpdir(), 'revition-phase3-'));
-const DIRS = { XDG_CONFIG_HOME: join(root, 'config'), XDG_STATE_HOME: join(root, 'state'), XDG_CACHE_HOME: join(root, 'cache') };
+// APPDATA / LOCALAPPDATA: Windows ignores XDG_* (core config/paths.ts).
+const DIRS = {
+  XDG_CONFIG_HOME: join(root, 'config'),
+  XDG_STATE_HOME: join(root, 'state'),
+  XDG_CACHE_HOME: join(root, 'cache'),
+  APPDATA: join(root, 'appdata'),
+  LOCALAPPDATA: join(root, 'localappdata'),
+};
 const ENV = { ...E, ...DIRS, NO_COLOR: '1', CI: 'true', REVITION_HOST: HOST, REVITION_TOKEN: TOKEN, REVITION_NO_UPDATE_CHECK: '1' };
 const spend: { step: string; quoteId: string; quoted: unknown; billed: unknown }[] = [];
 
