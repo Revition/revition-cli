@@ -138,9 +138,23 @@ export interface LocalResult {
 }
 
 export interface LocalRunOptions {
+  /** The program's own time, counted from the moment it starts running (the interpreter's boot is not in it). */
   readonly timeoutMs: number;
   /** The Python interpreter (default `python3`). */
   readonly python?: string;
+}
+
+/**
+ * The most an interpreter may take to START the program (before `timeoutMs` begins). The legacy 10 s per test
+ * (legacy/src/commands.ts:58, kept for T2.1.3 AC1 parity) is the program's own time: counted from spawn, a cold Python
+ * or Node start on a loaded Windows machine spent it before a line of the user's code ran (PR #11 run 45592049755:
+ * a network-attempt test "timed out" instead of reporting the blocked attempt). A hung boot still ends here.
+ */
+export const BOOT_CEILING_MS = 60_000;
+
+/** The first line a program prints: its start, which begins `timeoutMs`. Random per run, never the answer nonce. */
+function startLine(language: ProgramLanguage, marker: string): string {
+  return language === 'python' ? `print('${marker}', flush=True)\n` : `console.log('${marker}');\n`;
 }
 
 /**
@@ -163,7 +177,10 @@ export function runLocally(cap: LocalCapability, input: unknown, sdk: FixtureSdk
   }
   const language: ProgramLanguage = cap.language === 'ts' ? 'typescript' : 'python';
   const nonce = newNonce();
-  const head = language === 'python' ? `${PYTHON_NETWORK_BLOCK}${fixtureSdkPrelude(language, sdk)}` : fixtureSdkPrelude(language, sdk);
+  const started = `${newNonce()}START`;
+  const head = `${startLine(language, started)}${
+    language === 'python' ? `${PYTHON_NETWORK_BLOCK}${fixtureSdkPrelude(language, sdk)}` : fixtureSdkPrelude(language, sdk)
+  }`;
   const program = buildProgram(language, `${head}${cap.source}`, cap.entrypoint, input, nonce);
   if (program === null) return Promise.resolve({ ok: false, message: 'the entrypoint is not a plain name', logs: [], networkAttempt: false });
   const dir = mkdtempSync(join(tmpdir(), 'revition-test-'));
@@ -179,12 +196,23 @@ export function runLocally(cap: LocalCapability, input: unknown, sdk: FixtureSdk
     const child = spawn(cmd, args, { env: childEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill('SIGKILL');
-    }, opts.timeoutMs);
-    child.stdout.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
+    const state: { timedOut: 'boot' | 'run' | null } = { timedOut: null };
+    const expire = (which: 'boot' | 'run'): NodeJS.Timeout =>
+      setTimeout(() => {
+        state.timedOut = which;
+        child.kill('SIGKILL');
+      }, which === 'boot' ? BOOT_CEILING_MS : opts.timeoutMs);
+    // The boot ceiling runs until the program prints its start line; the program's own time runs from there.
+    let timer = expire('boot');
+    let running = false;
+    child.stdout.on('data', (d: Buffer) => {
+      stdout += d.toString('utf8');
+      if (!running && stdout.includes(started)) {
+        running = true;
+        clearTimeout(timer);
+        timer = expire('run');
+      }
+    });
     child.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
     let finished = false;
     const done = (r: Omit<LocalResult, 'networkAttempt'>): void => {
@@ -197,9 +225,10 @@ export function runLocally(cap: LocalCapability, input: unknown, sdk: FixtureSdk
     };
     child.on('error', (e) => done({ ok: false, message: `could not start ${cmd}: ${e.message}`, logs: [] }));
     child.on('close', () => {
-      const parsed = parseRun(stdout, nonce);
+      const parsed = parseRun(stdout.split(/\r?\n/).filter((l) => l !== started).join('\n'), nonce);
       const logs = [...parsed.logs, ...stderr.split(/\r?\n/).filter((l) => l !== '')];
-      if (timedOut) done({ ok: false, message: `timed out after ${opts.timeoutMs} ms`, logs });
+      if (state.timedOut === 'boot') done({ ok: false, message: `did not start within ${BOOT_CEILING_MS} ms`, logs });
+      else if (state.timedOut === 'run') done({ ok: false, message: `timed out after ${opts.timeoutMs} ms`, logs });
       else if (parsed.answer === null) done({ ok: false, message: 'the program ended without an answer', logs });
       else if (parsed.answer.ok) done({ ok: true, output: parsed.answer.output, logs });
       else done({ ok: false, message: parsed.answer.message, logs });

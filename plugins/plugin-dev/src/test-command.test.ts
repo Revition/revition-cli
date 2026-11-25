@@ -11,7 +11,7 @@ import { describe, it } from 'node:test';
 
 import * as legacy from '../../../legacy/src/local-run.js';
 
-import { buildProgram, parseRun, preloadSpecifier } from './local/local-run.js';
+import { buildProgram, parseRun, preloadSpecifier, runLocally } from './local/local-run.js';
 import { interruptible, pressCtrlC } from './test-fixtures/ctrl-c.js';
 import { CLI_BIN, dirs, runCli } from './test-fixtures/mock-platform.js';
 
@@ -153,5 +153,31 @@ describe('T2.1.3 / T2.1.4 the local runner on every OS', () => {
     assert.equal(preloadSpecifier('C:\\Users\\dev\\AppData\\Local\\Temp\\revition-test-1\\no-network.mjs', true), 'file:///C:/Users/dev/AppData/Local/Temp/revition-test-1/no-network.mjs');
     assert.equal(preloadSpecifier('/tmp/revition-test-1/no-network.mjs', false), 'file:///tmp/revition-test-1/no-network.mjs');
     assert.match(preloadSpecifier(join(tmpdir(), 'no-network.mjs')), /^file:\/\/\//u);
+  });
+
+  // PR #11 run 45592049755: a cold interpreter on a loaded Windows runner spent the 10 s before the code ran. The
+  // program's time now starts at its own first line; the boot has its own ceiling. A shell wrapper delays the
+  // interpreter's start (POSIX only: the wrapper is a shell script; the rule itself is OS-independent).
+  const slowPython = (delaySeconds: number): string => {
+    const wrapper = join(mkdtempSync(join(tmpdir(), 'rv-slowpy-')), 'python');
+    writeFileSync(wrapper, `#!/bin/sh\nsleep ${delaySeconds}\nexec python3 "$@"\n`, { mode: 0o755 });
+    return wrapper;
+  };
+  const noSdk = { fixtures: {}, granted: [] };
+
+  it('[CLI-T2.1.3-AC2] the program\'s time starts when it starts: a slow interpreter boot is not counted against it', {
+    skip: process.platform === 'win32' ? 'the boot-delay wrapper is a POSIX shell script' : false,
+  }, async () => {
+    const cap = { language: 'python' as const, source: 'def main(i):\n    return 42\n', entrypoint: 'main' };
+    const r = await runLocally(cap, {}, noSdk, { timeoutMs: 1_500, python: slowPython(2.5) });
+    assert.deepEqual([r.ok, r.output, r.message], [true, 42, undefined]);
+    assert.equal(r.logs.some((l) => l.includes('START')), false, 'the start line is not a log line');
+  });
+
+  it('[CLI-T2.1.3-AC2] the program\'s own slow code still times out at its budget', async () => {
+    const source = 'import time\ndef main(i):\n    time.sleep(5)\n    return 1\n';
+    const r = await runLocally({ language: 'python', source, entrypoint: 'main' }, {}, noSdk, { timeoutMs: 1_500 });
+    assert.equal(r.ok, false);
+    assert.equal(r.message, 'timed out after 1500 ms');
   });
 });
