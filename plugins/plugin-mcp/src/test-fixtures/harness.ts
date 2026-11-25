@@ -71,6 +71,14 @@ export const ok = (body: unknown): Answer => ({ status: 200, body });
  */
 export const INITIALIZE_TIMEOUT_MS = process.platform === 'win32' ? 180_000 : 60_000;
 
+/**
+ * The same budget for EVERY later request (tools/list, tools/call, ping). A tool call runs the CLI command in its own
+ * child process (commands/mcp/serve.ts runChild), so a paid call that is quoted first boots the CLI twice, each boot as
+ * slow as the server's own on a loaded windows-latest runner; the SDK default of 60 s timed `revition_quote` out
+ * (PR #11 run 45554184791, [CLI-T3.2.2-AC3], -32001 after a 140 s initialize).
+ */
+export const REQUEST_TIMEOUT_MS = INITIALIZE_TIMEOUT_MS;
+
 /** An MCP client (the official SDK) connected to `revition mcp serve <flags>` under a PAT against `host`. */
 export async function connect(host: string, flags: readonly string[] = []): Promise<{ client: Client; close: () => Promise<void> }> {
   const root = await mkdtemp(join(tmpdir(), 'revmcp-'));
@@ -98,5 +106,15 @@ export async function connect(host: string, flags: readonly string[] = []): Prom
     await transport.close().catch(() => undefined);
     throw new Error(`${e instanceof Error ? e.message : String(e)}; server stderr: ${stderr === '' ? '(none)' : stderr}`, { cause: e });
   }
+  // Every later request: the Windows budget unless the test passes its own, and a failure names the method, how long
+  // it waited and what the server printed (the CI log then shows where a slow call stopped).
+  const send = client.request.bind(client);
+  client.request = ((request, schema, options) => {
+    const started = Date.now();
+    return send(request, schema, { timeout: REQUEST_TIMEOUT_MS, ...options }).catch((e: unknown) => {
+      const what = `${request.method} after ${Date.now() - started} ms`;
+      throw new Error(`${e instanceof Error ? e.message : String(e)} (${what}); server stderr: ${stderr === '' ? '(none)' : stderr}`, { cause: e });
+    });
+  }) as typeof client.request;
   return { client, close: () => client.close() };
 }
