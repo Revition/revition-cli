@@ -1,10 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { z } from 'zod';
 
 import { atomicWriteFile } from '../config/write.js';
 import type { ApiClient } from '../transport/client.js';
+
+import { flagCacheFile, flagCacheFresh, readFlagCache, type FlagCache as FlagCacheShape } from './flag-cache.js';
+
+// The read side lives in flag-cache.ts (no zod, so `--help` stays inside its budget); re-exported unchanged.
+export { flagCacheFile, flagCacheFresh, readFlagCache } from './flag-cache.js';
 
 /**
  * T1.4.3 - server-delivered feature flags: GET /dev/cli/flags?version=&channel= -> { flags, ttl }, cached in
@@ -12,23 +14,7 @@ import type { ApiClient } from '../transport/client.js';
  * non-stable feature OFF). Flags are UX gates only: the server refuses a feature that is off for the caller.
  */
 export const FlagCache = z.object({ fetchedAt: z.number(), ttl: z.number(), flags: z.record(z.string(), z.boolean()) }).strict();
-export type FlagCache = z.infer<typeof FlagCache>;
-
-export const flagCacheFile = (cacheDir: string, profile: string): string => join(cacheDir, `flags-${profile.replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
-
-/** Synchronous (help rendering needs it): the cached flags, or null. */
-export function readFlagCache(cacheDir: string, profile: string): FlagCache | null {
-  try {
-    const r = FlagCache.safeParse(JSON.parse(readFileSync(flagCacheFile(cacheDir, profile), 'utf8')));
-    return r.success ? r.data : null;
-  } catch {
-    return null;
-  }
-}
-
-export function flagCacheFresh(c: FlagCache | null, nowMs: number): boolean {
-  return c !== null && nowMs - c.fetchedAt < c.ttl * 1000;
-}
+export type FlagCache = FlagCacheShape;
 
 /** Fresh cache, else a fetch (written to the cache), else the stale cache, else nothing (= all off). */
 export async function loadFlags(i: {

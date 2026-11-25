@@ -12,6 +12,9 @@ const RECORDER = new URL('./test-fixtures/record-loads.mjs', import.meta.url).hr
 /** The full core entry and the libraries that load only on first use (packages/core/src/lazy-deps.ts LAZY_PACKAGES). */
 const FULL_CORE = /\/packages\/core\/dist\/index\.js$|\/@revition\/cli-core\/dist\/index\.js$/u;
 const LAZY = /\/node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:undici|@sigstore\/(?:bundle|protobuf-specs|verify)|@napi-rs\/keyring)\//u;
+/** The schema library: ~95 modules, 317 ms --help median on macOS CI (PR #11 run 45569816900). The flag cache that
+ * --help reads is checked without it (core flags/flag-cache.ts). */
+const ZOD = /\/node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?zod\//u;
 
 async function loadsOf(bin: string, args: readonly string[]): Promise<readonly string[]> {
   const out = join(await mkdtemp(join(tmpdir(), 'revition-loads-')), 'loads.txt');
@@ -37,16 +40,17 @@ describe('[CLI-T1.1.1-AC6] the startup path loads only what --version / --help n
     assert.equal(infoOnlyRun(['-h']), false, 'not a help flag unless the CLI declares it');
   });
 
-  it('[CLI-T1.1.1-AC6] `revition --version` loads neither the full core nor the lazy libraries', async () => {
+  it('[CLI-T1.1.1-AC6] `revition --version` loads neither the full core, the lazy libraries nor zod', async () => {
     const loads = await loadsOf(CLI_BIN, ['--version']);
     assert.ok(loads.some((u) => u.includes('@oclif/core')), 'the recorder saw the run');
-    assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u)), []);
+    assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u) || ZOD.test(u)), []);
   });
 
-  it('[CLI-T1.1.1-AC6] `revition --help` loads neither the full core nor the lazy libraries', async () => {
+  it('[CLI-T1.1.1-AC6] `revition --help` loads neither the full core, the lazy libraries nor zod', async () => {
     const loads = await loadsOf(CLI_BIN, ['--help']);
     assert.ok(loads.some((u) => u.endsWith('/dist/help.js')), 'the help class ran');
-    assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u)), []);
+    assert.ok(loads.some((u) => u.endsWith('/flags/flag-cache.js')), 'help read the flag cache');
+    assert.deepEqual(loads.filter((u) => FULL_CORE.test(u) || LAZY.test(u) || ZOD.test(u)), []);
   });
 
   it('[CLI-T1.1.1-AC6] control: a command run DOES load the core (the setup is only skipped for version/help)', async () => {

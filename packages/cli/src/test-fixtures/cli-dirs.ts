@@ -18,13 +18,14 @@ export type CliDirs = {
   readonly LOCALAPPDATA: string;
 };
 
-export function cliDirs(root: string): CliDirs {
+/** `pathJoin` defaults to this host's; a test simulating another OS passes that OS's (path.posix / path.win32). */
+export function cliDirs(root: string, pathJoin: (...parts: string[]) => string = join): CliDirs {
   return {
-    XDG_CONFIG_HOME: join(root, 'config'),
-    XDG_STATE_HOME: join(root, 'state'),
-    XDG_CACHE_HOME: join(root, 'cache'),
-    APPDATA: join(root, 'appdata'),
-    LOCALAPPDATA: join(root, 'localappdata'),
+    XDG_CONFIG_HOME: pathJoin(root, 'config'),
+    XDG_STATE_HOME: pathJoin(root, 'state'),
+    XDG_CACHE_HOME: pathJoin(root, 'cache'),
+    APPDATA: pathJoin(root, 'appdata'),
+    LOCALAPPDATA: pathJoin(root, 'localappdata'),
   };
 }
 

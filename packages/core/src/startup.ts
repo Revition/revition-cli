@@ -5,4 +5,4 @@
  */
 export { experimentalOptIn } from './command/stability.js';
 export { defaultCliPaths } from './config/paths.js';
-export { readFlagCache } from './flags/flags.js';
+export { readFlagCache } from './flags/flag-cache.js';
