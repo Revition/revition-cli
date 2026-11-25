@@ -1,9 +1,9 @@
 import { createHash, createPublicKey, verify as cryptoVerify, type KeyObject } from 'node:crypto';
 
-import { bundleFromJSON, type Bundle } from '@sigstore/bundle';
-import { TrustedRoot } from '@sigstore/protobuf-specs';
-import { toSignedEntity, toTrustMaterial, Verifier, type TrustMaterial } from '@sigstore/verify';
+import type { Bundle } from '@sigstore/bundle';
+import type { TrustMaterial } from '@sigstore/verify';
 
+import { sigstoreBundle, sigstoreSpecs, sigstoreVerify } from '../lazy-deps.js';
 import { RevitionCliError } from '../errors/cli-error.js';
 import { EXIT } from '../output/exit-codes.js';
 
@@ -103,7 +103,7 @@ export function purl(name: string, version: string): string {
 let pinnedTrust: TrustMaterial | null = null;
 
 function trustMaterial(keys: readonly RegistryKey[]): TrustMaterial {
-  pinnedTrust ??= toTrustMaterial(TrustedRoot.fromJSON(trustedRootJson));
+  pinnedTrust ??= sigstoreVerify().toTrustMaterial(sigstoreSpecs().TrustedRoot.fromJSON(trustedRootJson));
   return {
     ...pinnedTrust,
     publicKey: (hint: string) => {
@@ -178,15 +178,15 @@ export function verifyAttestations(
       'Ask the publisher to publish with `npm publish --provenance` from CI.'
     );
   }
-  const verifier = new Verifier(trustMaterial(keys));
+  const verifier = new (sigstoreVerify().Verifier)(trustMaterial(keys));
   let builtBy: string;
   try {
-    const bundle = bundleFromJSON(provenance.bundle);
-    const signer = verifier.verify(toSignedEntity(bundle));
+    const bundle = sigstoreBundle().bundleFromJSON(provenance.bundle);
+    const signer = verifier.verify(sigstoreVerify().toSignedEntity(bundle));
     assertSubject(dssePayload(bundle), v, 'provenance');
     builtBy = signer.identity?.subjectAlternativeName ?? '';
-    const pub = bundleFromJSON(publish.bundle);
-    verifier.verify(toSignedEntity(pub));
+    const pub = sigstoreBundle().bundleFromJSON(publish.bundle);
+    verifier.verify(sigstoreVerify().toSignedEntity(pub));
     assertSubject(dssePayload(pub), v, 'publish attestation');
   } catch (e) {
     if (e instanceof RevitionCliError) throw e;

@@ -2,8 +2,7 @@ import { createPublicKey, verify, type webcrypto } from 'node:crypto';
 
 type JsonWebKey = webcrypto.JsonWebKey;
 
-import { request } from 'undici';
-
+import { undici } from '../lazy-deps.js';
 import { RevitionCliError } from '../errors/cli-error.js';
 import { EXIT } from '../output/exit-codes.js';
 import { dispatcherFor } from '../transport/proxy.js';
@@ -23,7 +22,7 @@ const refuse = (why: string): RevitionCliError =>
 
 export async function fetchJwks(cfg: AuthConfig, env: Readonly<Record<string, string | undefined>>): Promise<Jwks> {
   const url = new URL(`${cfg.issuerBase}/.well-known/jwks.json`);
-  const res = await request(url, { dispatcher: dispatcherFor(url, env), headersTimeout: 15_000, bodyTimeout: 15_000 });
+  const res = await undici().request(url, { dispatcher: dispatcherFor(url, env), headersTimeout: 15_000, bodyTimeout: 15_000 });
   return (await res.body.json()) as Jwks;
 }
 

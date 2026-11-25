@@ -1,5 +1,6 @@
-import { request } from 'undici';
+import type { request } from 'undici';
 
+import { undici } from '../lazy-deps.js';
 import { RevitionCliError } from '../errors/cli-error.js';
 import { EXIT } from '../output/exit-codes.js';
 import { dispatcherFor } from '../transport/proxy.js';
@@ -25,7 +26,7 @@ export function assertPluginName(name: string): void {
 async function get(url: string, env: Readonly<Record<string, string | undefined>>, accept: string): Promise<{ status: number; body: Buffer }> {
   const u = new URL(url);
   if (u.protocol !== 'https:') throw new RevitionCliError({ code: 'PLUGIN_REGISTRY_NOT_HTTPS', message: `Refused a non-HTTPS URL: ${u.origin}` }, EXIT.network);
-  const res = await request(u, { method: 'GET', headers: { accept }, dispatcher: dispatcherFor(u, env), maxRedirections: 0 } as Parameters<typeof request>[1]);
+  const res = await undici().request(u, { method: 'GET', headers: { accept }, dispatcher: dispatcherFor(u, env), maxRedirections: 0 } as Parameters<typeof request>[1]);
   const len = Number(res.headers['content-length'] ?? '0');
   if (len > MAX_TARBALL_BYTES) {
     await res.body.dump();

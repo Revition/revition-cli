@@ -1,5 +1,4 @@
-import { request } from 'undici';
-
+import { undici } from '../lazy-deps.js';
 import { RevitionCliError } from '../errors/cli-error.js';
 import { EXIT } from '../output/exit-codes.js';
 import { dispatcherFor } from '../transport/proxy.js';
@@ -74,7 +73,7 @@ export async function postForm(
   const url = new URL(`${cfg.issuerBase}${path}`);
   let res;
   try {
-    res = await request(url, {
+    res = await undici().request(url, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: new URLSearchParams(form).toString(),

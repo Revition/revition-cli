@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import { request as undiciRequest, type Dispatcher } from 'undici';
+import type { Dispatcher } from 'undici';
 
+import { undici } from '../lazy-deps.js';
 import { assertWorkspaceFor, RevitionCliError } from '../errors/cli-error.js';
 import { isWorkspaceRoute } from '../identity/identity.js';
 import { mapPlatformError } from '../errors/map-platform-error.js';
@@ -137,7 +138,7 @@ export class ApiClient {
       let body: unknown = null;
       let errorCode: string | null = null;
       try {
-        const res = await undiciRequest(url, {
+        const res = await undici().request(url, {
           method: req.method,
           headers,
           ...(req.body === undefined ? {} : { body: JSON.stringify(req.body) }),

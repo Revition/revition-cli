@@ -1,5 +1,4 @@
-import { request } from 'undici';
-
+import { undici } from '../lazy-deps.js';
 import { isCi } from '../auth/ci-detect.js';
 import { dispatcherFor } from '../transport/proxy.js';
 
@@ -69,7 +68,7 @@ export function updateNotice(c: UpdateCache | null, installed: string): string |
 
 async function getJson(url: string, env: Readonly<Record<string, string | undefined>>): Promise<unknown> {
   const u = new URL(url);
-  const res = await request(u, { dispatcher: dispatcherFor(u, env), headersTimeout: 10_000, bodyTimeout: 10_000, headers: { accept: 'application/json' } });
+  const res = await undici().request(u, { dispatcher: dispatcherFor(u, env), headersTimeout: 10_000, bodyTimeout: 10_000, headers: { accept: 'application/json' } });
   if (res.statusCode >= 400) {
     await res.body.dump();
     return null;

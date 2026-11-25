@@ -1128,6 +1128,7 @@ List runtime secret NAMES (the workspace's, or an app's with --app); values are 
 Flags:
 
 - `--app <value>`: An app's secrets (an independent developer's apps) instead of the workspace's.
+- `--env <dev|test|staging|prod>`: The workspace secret's environment (dev, test, staging, prod); default prod.
 
 Examples:
 
@@ -1147,6 +1148,7 @@ Arguments:
 Flags:
 
 - `--app <value>`: An app's secret instead of the workspace's.
+- `--env <dev|test|staging|prod>`: The workspace secret's environment (dev, test, staging, prod); default prod.
 
 Examples:
 
@@ -1167,6 +1169,7 @@ Arguments:
 Flags:
 
 - `--app <value>`: An app's secret instead of the workspace's.
+- `--env <dev|test|staging|prod>`: The workspace secret's environment (dev, test, staging, prod); default prod.
 
 Examples:
 

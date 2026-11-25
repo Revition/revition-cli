@@ -40,10 +40,7 @@ export function featureFromCache(name: string, profile: string, version: string)
   return c?.flags[name] === true;
 }
 
-export function enabledFlags(profile: string): ReadonlySet<string> {
-  const c = readFlagCache(defaultCliPaths().cacheDir, profile);
-  return new Set(Object.entries(c?.flags ?? {}).filter(([, on]) => on).map(([n]) => n));
-}
+export { enabledFlags } from './enabled-flags.js';
 
 /** T1.4.2: the first interactive run asks once (default No); a non-interactive first run never asks and stays off. */
 async function firstRunConsent(json: boolean): Promise<ConfigTelemetry> {

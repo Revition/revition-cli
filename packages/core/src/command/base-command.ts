@@ -13,6 +13,7 @@ import { pagerCommand, render, writeData, type HumanView } from '../output/rende
 
 import type { BaseFlagValues, CommandContext, CoreServices } from './context.js';
 import { deprecationNotice, type CommandMeta } from './contract.js';
+import { experimentalOptIn } from './stability.js';
 
 export interface PipelineInput<T> {
   readonly meta: CommandMeta;
@@ -37,10 +38,7 @@ export interface PipelineInput<T> {
   readonly reveal?: (data: T) => { readonly key: string; readonly value: string } | null;
 }
 
-/** Whether the experimental opt-in is present (T1.4.3: REVITION_EXPERIMENTAL=1 or --experimental). PURE. */
-export function experimentalOptIn(env: Readonly<Record<string, string | undefined>>, flag: boolean): boolean {
-  return flag || env['REVITION_EXPERIMENTAL'] === '1';
-}
+export { experimentalOptIn };
 
 /**
  * T1.1.1 - the one pipeline every command runs, in order:

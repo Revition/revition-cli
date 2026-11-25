@@ -1,5 +1,4 @@
-import { Entry } from '@napi-rs/keyring';
-
+import { keyring } from '../lazy-deps.js';
 import { accountOf, CREDENTIAL_SERVICE, parseStored, type CredentialKey, type CredentialStore, type StoredCredential } from './store.js';
 
 /**
@@ -13,7 +12,7 @@ export interface KeyringEntry {
 }
 export type EntryFactory = (service: string, account: string) => KeyringEntry;
 
-export const nativeEntry: EntryFactory = (service, account) => new Entry(service, account);
+export const nativeEntry: EntryFactory = (service, account) => new (keyring().Entry)(service, account);
 
 export class KeychainStore implements CredentialStore {
   readonly backend = 'keychain' as const;

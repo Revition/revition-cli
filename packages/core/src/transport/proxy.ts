@@ -1,5 +1,6 @@
-import { Agent, ProxyAgent, type Dispatcher } from 'undici';
+import type { Dispatcher } from 'undici';
 
+import { undici } from '../lazy-deps.js';
 import { TLS_OPTIONS } from './tls-guard.js';
 
 /**
@@ -38,6 +39,6 @@ export function proxyLabel(proxy: string): string {
 /** The undici dispatcher for a target: through the proxy when one applies; TLS verification always on. */
 export function dispatcherFor(target: URL, env: Readonly<Record<string, string | undefined>>): Dispatcher {
   const proxy = proxyFor(target, env);
-  if (proxy === null) return new Agent({ connect: TLS_OPTIONS });
-  return new ProxyAgent({ uri: proxy, requestTls: TLS_OPTIONS, proxyTls: TLS_OPTIONS });
+  if (proxy === null) return new (undici().Agent)({ connect: TLS_OPTIONS });
+  return new (undici().ProxyAgent)({ uri: proxy, requestTls: TLS_OPTIONS, proxyTls: TLS_OPTIONS });
 }

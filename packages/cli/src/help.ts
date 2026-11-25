@@ -1,7 +1,8 @@
-import { experimentalOptIn, type CommandMeta } from '@revition/cli-core';
+import type { CommandMeta } from '@revition/cli-core';
+import { experimentalOptIn } from '@revition/cli-core/startup';
 import { Help, type Command } from '@oclif/core';
 
-import { enabledFlags } from './telemetry-flags.js';
+import { enabledFlags } from './enabled-flags.js';
 
 /**
  * T1.1.1 / T1.4.3 - help lists a command only when it may run: experimental commands are hidden without the opt-in
