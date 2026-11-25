@@ -6,5 +6,6 @@
  * oclif.helpClass, the {target, identifier} form of oclif's plugin-test-esbuild). A command run keeps the unbundled
  * oclif: its command classes import @oclif/core, and one run never mixes two copies of it.
  */
+// T1.5.1 outward leg: a packages/ change without a changeset (this PR is closed unmerged).
 export { execute } from '@oclif/core/execute';
 export { default as RevitionHelp } from './help.js';
