@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/account.link-workspace.v1.json",
+  "title": "revition account link-workspace --json",
+  "x-schema-id": "revition.account.link-workspace.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "account:link-workspace"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "developerId": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "independent",
+                "tenant_member"
+              ]
+            },
+            "linkedOrgId": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "verified": {
+              "type": "boolean"
+            },
+            "developerWalletId": {
+              "type": "string"
+            },
+            "agreementAccepted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "agreementAccepted",
+            "developerId",
+            "developerWalletId",
+            "kind",
+            "linkedOrgId",
+            "verified"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

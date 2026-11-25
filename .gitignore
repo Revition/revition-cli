@@ -1,5 +1,9 @@
 node_modules/
 dist/
+oclif.manifest.json
 coverage/
 *.tgz
+# The plugin-verify test fixture: the real published tarball whose integrity testdata/*.version.json pins.
+!packages/core/src/plugins/testdata/*.tgz
+dist-sea/
 .DS_Store

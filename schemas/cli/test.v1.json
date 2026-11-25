@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/test.v1.json",
+  "title": "revition test --json",
+  "x-schema-id": "revition.test.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "test"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schemaId": {
+              "const": "revition.test.v1"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "sdkVersion": {
+              "type": "string"
+            },
+            "passed": {
+              "type": "number"
+            },
+            "failed": {
+              "type": "number"
+            },
+            "cases": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "capability": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "output": {},
+                  "expected": {},
+                  "message": {
+                    "type": "string"
+                  },
+                  "networkAttempt": {
+                    "type": "boolean"
+                  },
+                  "logs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "capability",
+                  "expected",
+                  "logs",
+                  "name",
+                  "networkAttempt",
+                  "passed"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "cases",
+            "dir",
+            "failed",
+            "passed",
+            "schemaId",
+            "sdkVersion"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

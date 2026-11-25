@@ -1,0 +1,47 @@
+{
+  "name": "@revition/cli-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Revition CLI core: command contract, config, output, errors, redaction, transport",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins/index.d.ts",
+      "default": "./dist/plugins/index.js"
+    },
+    "./startup": {
+      "types": "./dist/startup.d.ts",
+      "default": "./dist/startup.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "2.1.2",
+    "@oclif/core": "4.11.14",
+    "@sigstore/bundle": "4.0.0",
+    "@sigstore/protobuf-specs": "0.5.2",
+    "@sigstore/verify": "3.1.1",
+    "undici": "7.30.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,17 +1,20 @@
 name: Release
 
-# T0.1.2: the ONLY workflow that can publish to npm. npm Trusted Publishing (OIDC) binds a package to this repository,
-# this file and the `npm-release` environment (deployment branch: main only), so no npm token exists anywhere and
-# provenance is automatic. Until the CLI release jobs arrive (T1.5.2), the one job here publishes the CLI plugin test
-# fixture (fixtures/e2e-fixture-plugin, "test fixture, not for use") by hand, for the T4.2.3 live plugin check.
+# T1.5.2 - the ONLY workflow that can publish. npm Trusted Publishing (OIDC) binds each package to this repository,
+# this file and the `npm-release` environment, so no npm token exists anywhere. Provenance is automatic.
+#   push to main      -> build -> canary publish (X.Y.Z-canary.<sha7>, tag canary) ; the "Version Packages" PR is
+#                        opened / updated from pending changesets ; after that PR merges, the new version is a
+#                        stable candidate -> release-approval (2 required reviewers + 10 min wait) -> publish to next
+#   workflow_dispatch -> the same, for the chosen channel (latest only by hand, never for a prerelease)
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      target:
-        description: What to publish
+      channel:
         type: choice
-        options: [e2e-fixture-plugin]
-        default: e2e-fixture-plugin
+        options: [canary, next, latest]
+        default: next
 
 permissions:
   contents: read
@@ -21,8 +24,56 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-fixture:
-    name: Publish the plugin test fixture
+  build:
+    name: Build, test, SBOM, pack
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - run: pnpm test
+      - name: Supply-chain gates (T1.5.3)
+        run: |
+          pnpm check:install-scripts
+          pnpm check:licenses
+          pnpm check:size
+          pnpm audit --prod --audit-level high
+      - uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+      - name: Canary version (push / canary only)
+        if: github.event_name == 'push' || inputs.channel == 'canary'
+        run: node scripts/release.mjs canary-version "$GITHUB_SHA"
+      - id: meta
+        run: echo "version=$(node -p "require('./packages/cli/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: release-artifacts/sbom.cdx.json
+          upload-artifact: false
+      - run: node scripts/release.mjs pack release-artifacts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-artifacts
+          path: release-artifacts/
+          if-no-files-found: error
+
+  publish-canary:
+    name: Publish canary
+    needs: build
+    if: github.event_name == 'push' || inputs.channel == 'canary'
     runs-on: ubuntu-latest
     environment: npm-release
     permissions:
@@ -36,14 +87,258 @@ jobs:
         with:
           node-version: 24.x
           registry-url: https://registry.npmjs.org
-      - name: npm 11.5.1 or later (trusted publishing needs it)
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-artifacts
+          path: release-artifacts
+      - name: npm publish --tag canary (OIDC trusted publishing)
         run: |
-          v="$(npm --version)"
-          echo "npm $v"
-          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1);' "$v"
-      - name: npm publish (OIDC trusted publishing, provenance automatic)
-        run: npm publish ./fixtures/e2e-fixture-plugin --access public
-      - name: Read back the published version and its attestations
+          for f in $(node -p "require('./release-artifacts/manifest.json').map((p) => p.file).join(' ')"); do
+            npm publish "release-artifacts/$f" --tag canary --access public
+          done
+      - run: node scripts/verify-release.mjs @revition/cli canary
+
+  release-pr:
+    name: Version Packages PR
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      stable: ${{ steps.candidate.outputs.stable }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - id: changesets
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version: pnpm version-packages
+          title: Version Packages
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: candidate
+        name: Stable candidate (no pending changesets and the version is not on npm yet)
+        if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
-          v="$(node -p "require('./fixtures/e2e-fixture-plugin/package.json').version")"
-          npm view "@revition/e2e-fixture-plugin@$v" name version dist.integrity dist.attestations --json
+          v=$(node -p "require('./packages/cli/package.json').version")
+          if npm view "@revition/cli@$v" version >/dev/null 2>&1; then echo "stable=false" >> "$GITHUB_OUTPUT"; else echo "stable=true" >> "$GITHUB_OUTPUT"; fi
+
+  approve-stable:
+    name: Approve stable (first of two maintainers)
+    needs: [build, release-pr]
+    if: >-
+      always() && needs.build.result == 'success' &&
+      (needs.release-pr.outputs.stable == 'true' || inputs.channel == 'next' || inputs.channel == 'latest')
+    runs-on: ubuntu-latest
+    # Required reviewers, "Prevent self-review" and a 10 minute wait timer are set on this environment; no secrets.
+    environment: release-approval
+    steps:
+      - run: echo "Stable release of ${{ needs.build.outputs.version }} approved (1 of 2)."
+
+  # T1.5.2 AC2: an environment needs only ONE of its reviewers, so the second approval is a second environment, and
+  # this job fails unless the two approvals came from two DIFFERENT people (scripts/two-approvers.mjs).
+  approve-stable-2:
+    name: Approve stable (a second, different maintainer)
+    needs: [build, approve-stable]
+    runs-on: ubuntu-latest
+    # Required reviewers and "Prevent self-review" are set on this environment; it holds no secrets.
+    environment: release-approval-2
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/two-approvers.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  build-stable:
+    name: Build stable
+    needs: approve-stable-2
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      channel: ${{ steps.meta.outputs.channel }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - run: pnpm test
+      - name: Supply-chain gates (T1.5.3)
+        run: |
+          pnpm check:install-scripts
+          pnpm check:licenses
+          pnpm check:size
+          pnpm audit --prod --audit-level high
+      - uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+      - id: meta
+        env:
+          REQUESTED: ${{ inputs.channel || 'next' }}
+        run: |
+          v=$(node -p "require('./packages/cli/package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "channel=$(node scripts/release.mjs channel "$v" "$REQUESTED")" >> "$GITHUB_OUTPUT"
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: release-artifacts/sbom.cdx.json
+          upload-artifact: false
+      - run: node scripts/release.mjs pack release-artifacts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-artifacts-stable
+          path: release-artifacts/
+          if-no-files-found: error
+
+  binaries:
+    # T4.1.1 (ADR 0006): one standalone executable per target, from the same commit and lockfile as the npm package;
+    # each runs `--version` and `doctor` here and its checksum goes into SHA256SUMS (scripts/sea-smoke.mjs = AC1-AC3).
+    name: Standalone binary (${{ matrix.target }})
+    needs: build-stable
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { target: darwin-arm64, os: macos-14 }
+          - { target: darwin-x64, os: macos-13 }
+          - { target: linux-x64, os: ubuntu-24.04 }
+          - { target: linux-arm64, os: ubuntu-24.04-arm }
+          - { target: win32-x64, os: windows-2022 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - run: node scripts/build-sea.mjs --out dist-sea
+      - run: node scripts/sea-smoke.mjs --out dist-sea --report dist-sea/smoke-${{ matrix.target }}.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist-sea/
+          if-no-files-found: error
+
+  publish-stable:
+    name: Publish next / latest
+    needs: build-stable
+    runs-on: ubuntu-latest
+    # The single trusted-publisher binding (T0.1.2): deployment branch policy = main only.
+    environment: npm-release
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.build-stable.outputs.version }}
+      CHANNEL: ${{ needs.build-stable.outputs.channel }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-artifacts-stable
+          path: release-artifacts
+      - name: npm publish --tag next|latest (OIDC trusted publishing)
+        run: |
+          for f in $(node -p "require('./release-artifacts/manifest.json').map((p) => p.file).join(' ')"); do
+            npm publish "release-artifacts/$f" --tag "$CHANNEL" --access public
+          done
+      - run: node scripts/verify-release.mjs @revition/cli "$CHANNEL"
+      - uses: chainguard-dev/actions/setup-gitsign@f133c9e8aae4b7e9031c254d34cacb2fa8f83c31 # v1.7.3
+      - name: Signed tag (sigstore) + GitHub Release with notes, SBOM and provenance links
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag -s "v$VERSION" -m "@revition/cli $VERSION"
+          git push origin "v$VERSION"
+          {
+            echo "Install: \`npm install -g @revition/cli@$CHANNEL\`"
+            echo
+            echo "Provenance: https://www.npmjs.com/package/@revition/cli/v/$VERSION#provenance"
+            echo "Verify: \`npm audit signatures\` after installing (see docs/release/process.md)."
+            echo
+            awk -v v="## $VERSION" '$0==v{f=1;next} /^## /{f=0} f' packages/cli/CHANGELOG.md
+          } > release-notes.md
+          prerelease=""
+          if [ "$CHANNEL" != "latest" ]; then prerelease="--prerelease"; fi
+          gh release create "v$VERSION" --verify-tag $prerelease --title "v$VERSION" --notes-file release-notes.md \
+            release-artifacts/sbom.cdx.json release-artifacts/*.tgz
+
+  publish-binaries:
+    # T4.1.1 AC3: the standalone binaries and ONE SHA256SUMS on the GitHub Release the npm publish created.
+    name: Attach the standalone binaries
+    needs: [publish-stable, binaries, build-stable]
+    runs-on: ubuntu-latest
+    # T4.1.5: SHA256SUMS is signed keyless by THIS workflow (the identity install.sh / install.ps1 require), and
+    # SHA256SUMS + the two install scripts carry a GitHub build-provenance attestation (AC3 "themselves attested").
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.build-stable.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: binary-*
+          path: binaries
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+      - name: SHA256SUMS + its Sigstore bundle
+        run: |
+          cat binaries/*/SHA256SUMS | sort -k2 > SHA256SUMS
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+          cp scripts/install.sh scripts/install.ps1 .
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            SHA256SUMS
+            install.sh
+            install.ps1
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "v$VERSION" binaries/*/revition-* SHA256SUMS SHA256SUMS.sigstore.json install.sh install.ps1
+      - name: Bump the Homebrew tap formula (T4.1.5 AC2)
+        if: needs.build-stable.outputs.channel == 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          node scripts/brew-formula.mjs --version "$VERSION" --sums SHA256SUMS --out revition.rb
+          gh api -X PUT repos/Revition/homebrew-tap/contents/Formula/revition.rb \
+            -f message="revition $VERSION" -f content="$(base64 -w0 revition.rb)" \
+            -f sha="$(gh api repos/Revition/homebrew-tap/contents/Formula/revition.rb --jq .sha 2>/dev/null || true)"

@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/commands.v1.json",
+  "title": "revition commands --json",
+  "x-schema-id": "revition.commands.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "commands"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "requiredScopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mutates": {
+                    "type": "boolean"
+                  },
+                  "confirm": {
+                    "type": "string"
+                  },
+                  "jsonSchemaId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "stability": {
+                    "type": "string"
+                  },
+                  "paid": {
+                    "type": "boolean"
+                  },
+                  "deprecated": {
+                    "type": "boolean"
+                  },
+                  "plugin": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "confirm",
+                  "deprecated",
+                  "id",
+                  "jsonSchemaId",
+                  "mutates",
+                  "paid",
+                  "plugin",
+                  "requiredScopes",
+                  "stability",
+                  "summary"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "commands"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

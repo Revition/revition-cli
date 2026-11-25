@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/agents.validate.v1.json",
+  "title": "revition agents validate --json",
+  "x-schema-id": "revition.agents.validate.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "agents:validate"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "problems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "line": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "line",
+                        "message",
+                        "path"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "line": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "line",
+                        "message",
+                        "path"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "server": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "valid": {
+                            "type": "boolean"
+                          },
+                          "issues": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "diff": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "changedSections": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "added": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "removed": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "permissionDelta": {}
+                                },
+                                "required": [
+                                  "added",
+                                  "changedSections",
+                                  "removed"
+                                ],
+                                "additionalProperties": true
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "diff",
+                          "issues",
+                          "valid"
+                        ],
+                        "additionalProperties": true
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "file",
+                  "ok",
+                  "problems",
+                  "server",
+                  "warnings"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "files",
+            "ok"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -11,14 +11,26 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "node --test \"scripts/*.test.mjs\" && node --import tsx --test \"legacy-parity/*.test.mjs\" && pnpm -r --if-present run test",
+    "test": "node scripts/test-all.mjs",
     "build": "pnpm -r --if-present run build",
-    "check:actions": "node scripts/check-pinned-actions.mjs"
+    "check:actions": "node scripts/check-pinned-actions.mjs",
+    "check:changesets": "node scripts/check-changesets.mjs",
+    "check:install-scripts": "node scripts/check-install-scripts.mjs",
+    "check:licenses": "node scripts/check-licenses.mjs",
+    "check:size": "node scripts/check-size.mjs",
+    "changeset": "changeset",
+    "e2e:phase1": "node --import tsx --test --test-timeout=300000 e2e/phase1.e2e.ts",
+    "rehearsal": "node --import tsx --test --test-timeout=300000 \"e2e/rehearsal/*.rehearsal.test.ts\"",
+    "version-packages": "changeset version && node scripts/release-notes.mjs"
   },
   "devDependencies": {
+    "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
     "eslint": "10.13.0",
-    "tsx": "4.23.15"
+    "postject": "1.0.0-alpha.6",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1"
   },
   "pnpm": {
     "overrides": {

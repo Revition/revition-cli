@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/submissions.view.v1.json",
+  "title": "revition submissions view --json",
+  "x-schema-id": "revition.submissions.view.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "submissions:view"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "submissionId": {
+              "type": "string"
+            },
+            "appId": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "approved",
+                "auto_checks",
+                "certified",
+                "changes_requested",
+                "in_review",
+                "published",
+                "rejected",
+                "submitted"
+              ]
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "projectVersion": {
+              "type": "number"
+            },
+            "autoResults": {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {}
+            },
+            "reviewNotes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "certification": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "certifiedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "badges",
+                    "certifiedAt"
+                  ],
+                  "additionalProperties": true
+                }
+              ]
+            },
+            "history": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string"
+                  },
+                  "at": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "at",
+                  "reason",
+                  "state"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "appId",
+            "autoResults",
+            "createdAt",
+            "history",
+            "projectId",
+            "projectVersion",
+            "reviewNotes",
+            "state",
+            "submissionId",
+            "updatedAt",
+            "version"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

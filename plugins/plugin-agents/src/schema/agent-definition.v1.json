@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": {
+              "type": "string"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "knowledge": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "dataSources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "memory": {},
+            "permissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "governance": {},
+            "operatingHours": {},
+            "settings": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "collaboration": {
+              "type": "object",
+              "properties": {
+                "canDelegate": {
+                  "type": "boolean"
+                },
+                "canReceiveDelegated": {
+                  "type": "boolean"
+                },
+                "canSpawnSubagents": {
+                  "type": "boolean"
+                },
+                "allowedAgents": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "maxDepth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "budget": {},
+                "handoffPolicy": {
+                  "type": "string"
+                },
+                "humanApprovalRules": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sharedContextPolicy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "canDelegate",
+                "canReceiveDelegated",
+                "canSpawnSubagents",
+                "allowedAgents",
+                "maxDepth",
+                "budget",
+                "handoffPolicy",
+                "humanApprovalRules",
+                "sharedContextPolicy"
+              ]
+            },
+            "outputs": {},
+            "dataSourceGrants": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "grantedOperationIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "accessLevel": {
+                    "type": "string",
+                    "enum": [
+                      "read_only",
+                      "read_write"
+                    ]
+                  },
+                  "scopeMembers": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "config": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "grantedOperationIds",
+                  "accessLevel",
+                  "config"
+                ]
+              }
+            },
+            "fileAccessPolicy": {},
+            "fileGenerationPolicy": {},
+            "attachmentPolicy": {},
+            "variables": {},
+            "channelWebhook": {},
+            "verticalId": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "sections": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "config",
+        "sections"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "agent",
+    "config"
+  ],
+  "additionalProperties": false,
+  "title": "Revition agent definition v1"
+}

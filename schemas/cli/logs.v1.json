@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/logs.v1.json",
+  "title": "revition logs --json",
+  "x-schema-id": "revition.logs.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "logs"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "logs": {
+              "type": "object",
+              "properties": {
+                "runId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "build",
+                    "eval",
+                    "execution"
+                  ]
+                },
+                "build": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "exec": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "at": {
+                        "type": "string"
+                      },
+                      "node": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "durationMs": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      "attributes": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "at",
+                      "attributes",
+                      "durationMs",
+                      "node",
+                      "status"
+                    ],
+                    "additionalProperties": true
+                  }
+                },
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "at": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "frames": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "at",
+                      "frames",
+                      "kind"
+                    ],
+                    "additionalProperties": true
+                  }
+                },
+                "eval": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "withheld": {
+                  "type": "number"
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "build",
+                "errors",
+                "eval",
+                "exec",
+                "kind",
+                "notes",
+                "runId",
+                "withheld"
+              ],
+              "additionalProperties": true
+            },
+            "grep": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "required": [
+            "appId",
+            "grep",
+            "logs"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

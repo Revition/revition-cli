@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+// The `revition` executable. ESM (the package is "type": "module"); oclif loads the compiled commands from dist/.
+// Startup budget (REVITION-CLI-PLAN.md:755, T1.1.1 AC6 "within budget on the 3 OS"): Node's on-disk compile cache
+// reuses the compiled bytecode across runs. It must be enabled before the CLI's modules load, so oclif is imported after.
+import module from 'node:module';
+
+module.enableCompileCache?.();
+const argv = process.argv.slice(2);
+// `revition --version` prints exactly oclif's line (`config.userAgent`: name/version platform-arch node-version, for
+// argv[0] === '--version'; no additional version flags are configured) without loading oclif, its config, the plugin
+// manifests or semver (~176 modules): windows-latest measured a 435-565 ms median through oclif (PR #11 run
+// 45586730726). No command runs and no plugin loads on this path, so the per-run plugin policy has nothing to guard.
+// Linux keeps oclif's path: oclif reports a WSL host as platform `wsl`, which only its own detection knows.
+if (argv[0] === '--version' && process.platform !== 'linux') {
+  const { readFileSync } = await import('node:fs');
+  const { arch } = await import('node:os');
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const cpu = arch() === 'ia32' ? 'x86' : arch();
+  process.stdout.write(`${pkg.name}/${pkg.version} ${process.platform}-${cpu} node-${process.version}\n`);
+} else if (argv.length === 0 || (argv.length === 1 && argv[0] === '--help')) {
+  // The root help runs oclif's own path (config, plugins, init hook, help class) from ONE bundled file
+  // (dist/bundle/startup.js, scripts/bundle-startup.mjs) instead of ~110 module files: windows-latest measured a 537 ms
+  // median for --help unbundled (PR #11). No command runs here, so no command class meets the bundled oclif.
+  const { execute } = await import('../dist/bundle/startup.js');
+  await execute({ dir: import.meta.url });
+} else {
+  // The execute entry, not the package index (which also loads semver and every other oclif module): ~half the load.
+  const { execute } = await import('@oclif/core/execute');
+  await execute({ dir: import.meta.url });
+}

@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/build.v1.json",
+  "title": "revition build --json",
+  "x-schema-id": "revition.build.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "build"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schemaId": {
+              "const": "revition.build.v1"
+            },
+            "dir": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "mode": {
+              "enum": [
+                "local+server",
+                "local-only"
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "layout",
+                      "manifest",
+                      "server",
+                      "size",
+                      "tests"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "failed",
+                      "ok",
+                      "skipped"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "status"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "problems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "check": {
+                    "enum": [
+                      "layout",
+                      "manifest",
+                      "server",
+                      "size",
+                      "tests"
+                    ]
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "severity": {
+                    "enum": [
+                      "error",
+                      "warning"
+                    ]
+                  }
+                },
+                "required": [
+                  "check",
+                  "file",
+                  "message",
+                  "severity"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "check": {
+                    "enum": [
+                      "layout",
+                      "manifest",
+                      "server",
+                      "size",
+                      "tests"
+                    ]
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "severity": {
+                    "enum": [
+                      "error",
+                      "warning"
+                    ]
+                  }
+                },
+                "required": [
+                  "check",
+                  "file",
+                  "message",
+                  "severity"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "buildLogs": {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": [
+            "buildLogs",
+            "checks",
+            "dir",
+            "mode",
+            "ok",
+            "problems",
+            "schemaId",
+            "warnings"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

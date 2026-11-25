@@ -12,7 +12,7 @@ const BEFORE = JSON.parse(readFileSync(new URL('./recorded-requests.json', impor
 const AFTER = await runAllCommands(runCli);
 
 for (const name of ['scaffold', 'build', 'test', 'deploy', 'eval']) {
-  test(`legacy ${name}: same exit code and byte-identical requests as before the move`, () => {
+  test(`[CLI-T0.1.3-AC4] legacy ${name}: same exit code and byte-identical requests as before the move`, () => {
     assert.ok(BEFORE[name], `no recording for ${name}`);
     assert.ok(BEFORE[name].requests.length > 0, `${name} recorded no request (vacuous)`);
     assert.equal(AFTER[name].exit, BEFORE[name].exit);

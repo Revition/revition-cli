@@ -1,0 +1,20 @@
+{
+  "name": "@revition/fixture-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "T1.1.1 AC5 fixture: a command module added WITHOUT touching packages/core",
+  "type": "module",
+  "oclif": {
+    "bin": "revition",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./commands"
+    },
+    "topicSeparator": " ",
+    "helpClass": "../../../dist/help.js",
+    "hooks": {
+      "init": "../../../dist/hooks/init.js",
+      "prerun": "../../../dist/hooks/prerun.js"
+    }
+  }
+}

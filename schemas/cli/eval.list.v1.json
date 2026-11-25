@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/eval.list.v1.json",
+  "title": "revition eval list --json",
+  "x-schema-id": "revition.eval.list.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "eval:list"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "runId": {
+                    "type": "string"
+                  },
+                  "appId": {
+                    "type": "string"
+                  },
+                  "suiteId": {
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "projectVersion": {
+                    "type": "number"
+                  },
+                  "digest": {
+                    "type": "string"
+                  },
+                  "report": {
+                    "type": "object",
+                    "properties": {
+                      "capabilityId": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      },
+                      "suiteId": {
+                        "type": "string"
+                      },
+                      "baseline": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      },
+                      "withCapability": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      },
+                      "delta": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      },
+                      "verdict": {
+                        "enum": [
+                          "improves",
+                          "neutral",
+                          "regresses"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "baseline",
+                      "capabilityId",
+                      "delta",
+                      "suiteId",
+                      "verdict",
+                      "version",
+                      "withCapability"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "passRate": {
+                    "type": "number"
+                  },
+                  "cases": {
+                    "type": "number"
+                  },
+                  "at": {
+                    "type": "string"
+                  },
+                  "billedCredits": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "appId",
+                  "at",
+                  "cases",
+                  "digest",
+                  "passRate",
+                  "projectId",
+                  "projectVersion",
+                  "report",
+                  "runId",
+                  "suiteId"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "appId",
+            "runs"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

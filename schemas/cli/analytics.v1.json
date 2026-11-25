@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developer.revition.com/cli/schemas/analytics.v1.json",
+  "title": "revition analytics --json",
+  "x-schema-id": "revition.analytics.v1",
+  "x-cli-version": "0.1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "command",
+    "ok",
+    "data",
+    "error",
+    "warnings",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "command": {
+      "const": "analytics"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "published": {
+              "type": "boolean"
+            },
+            "period": {
+              "type": "object",
+              "properties": {
+                "days": {
+                  "type": "number"
+                },
+                "startMs": {
+                  "type": "number"
+                },
+                "endMs": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "days",
+                "endMs",
+                "startMs"
+              ],
+              "additionalProperties": true
+            },
+            "stats": {
+              "type": "object",
+              "properties": {
+                "installs": {
+                  "type": "number"
+                },
+                "active": {
+                  "type": "number"
+                },
+                "revenueUsd": {
+                  "type": "number"
+                },
+                "rating": {
+                  "type": "number"
+                },
+                "errorRate": {
+                  "type": "number"
+                },
+                "upliftTrend": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "active",
+                "errorRate",
+                "installs",
+                "rating",
+                "revenueUsd",
+                "upliftTrend"
+              ],
+              "additionalProperties": true
+            },
+            "sources": {
+              "type": "object",
+              "properties": {
+                "installs": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "active": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "revenueUsd": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "rating": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "errorRate": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "upliftTrend": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "recorded"
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "not_recorded"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "why"
+                      ],
+                      "additionalProperties": true
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "active",
+                "errorRate",
+                "installs",
+                "rating",
+                "revenueUsd",
+                "upliftTrend"
+              ],
+              "additionalProperties": true
+            },
+            "payouts": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "grossUsd": {
+                      "type": "number"
+                    },
+                    "feeUsd": {
+                      "type": "number"
+                    },
+                    "netUsd": {
+                      "type": "number"
+                    },
+                    "pendingUsd": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "feeUsd",
+                    "grossUsd",
+                    "netUsd",
+                    "pendingUsd"
+                  ],
+                  "additionalProperties": true
+                }
+              ]
+            },
+            "upliftVersions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "appId",
+            "payouts",
+            "period",
+            "published",
+            "sources",
+            "stats",
+            "upliftVersions"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "cliVersion"
+      ],
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

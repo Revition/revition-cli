@@ -1,0 +1,64 @@
+{
+  "name": "@revition/plugin-dev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Revition CLI developer workflow: account, starters, init, link, build, test, dev, generate",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node ../../packages/cli/scripts/oclif-manifest.mjs .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@oclif/core": "4.11.14",
+    "@revition/api-client": "workspace:*",
+    "@revition/cli-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "ajv": "8.18.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "oclif": {
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " ",
+    "topics": {
+      "account": {
+        "description": "Your developer account (register, link a workspace, status)."
+      },
+      "starters": {
+        "description": "The platform's project starters."
+      },
+      "apps": {
+        "description": "Your registered apps, their scopes and keys."
+      },
+      "apps:keys": {
+        "description": "App keys: shown once at creation, rotated, revoked."
+      },
+      "apps:scopes": {
+        "description": "The scopes an app declares."
+      },
+      "secrets": {
+        "description": "Runtime secrets, server-side only (names are listed; values never are)."
+      }
+    }
+  }
+}
