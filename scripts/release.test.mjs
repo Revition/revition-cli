@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { canaryVersion, channelFor, packPublic } from './release.mjs';
 import { twoApproverProblems } from './two-approvers.mjs';
-import { distTagProblems, EXPECTED, provenanceProblems, SLSA_V1 } from './verify-release.mjs';
+import { distTagProblems, EXPECTED, isPublished, provenanceProblems, SLSA_V1, waitForPublished } from './verify-release.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WF_DIR = join(ROOT, '.github', 'workflows');
@@ -104,6 +104,43 @@ describe('T1.5.2 trusted publishing, provenance, channels', () => {
     assert.match(verify, /'audit', 'signatures'/);
     assert.match(job(RELEASE, 'publish-stable'), /verify-release\.mjs @revition\/cli "\$CHANNEL"/);
     assert.deepEqual(provenanceProblems([], { name: '@revition/cli', version: '0.2.0' }), ['@revition/cli@0.2.0: no SLSA provenance attestation']);
+  });
+
+  it('[CLI-T1.5.2-AC3] the verification waits, bounded, until EVERY manifest package is visible at its version', async () => {
+    // Run 45989396956: npm processes a publish asynchronously; plugin-dev showed 4 min after its publish, plugin-assist
+    // later, and the immediate read failed. Each read is a registry document; two packages appear on the 3rd read.
+    const manifest = [
+      { name: '@revition/cli', version: '0.1.0-canary.a06d97b' },
+      { name: '@revition/plugin-assist', version: '0.0.0-canary.a06d97b' },
+    ];
+    let read = 0;
+    const getDoc = async (name) => {
+      read += 1;
+      const v = manifest.find((p) => p.name === name).version;
+      if (read <= 4) return { 'dist-tags': { latest: '0.0.0-reserved' }, versions: { '0.0.0-reserved': {} } };
+      return { 'dist-tags': { latest: '0.0.0-reserved', canary: v }, versions: { [v]: {} } };
+    };
+    const slept = [];
+    const docs = await waitForPublished(manifest, 'canary', { getDoc, sleep: async (ms) => void slept.push(ms), attempts: 5, delayMs: 10 });
+    assert.deepEqual([...docs.keys()].sort(), ['@revition/cli', '@revition/plugin-assist']);
+    assert.deepEqual(slept, [10, 10]);
+    // Bounded: a package that never appears fails, naming it, after exactly `attempts` reads (never waits forever).
+    let reads = 0;
+    const never = async () => {
+      reads += 1;
+      return { 'dist-tags': { latest: '0.0.0-reserved' }, versions: {} };
+    };
+    await assert.rejects(
+      waitForPublished([{ name: '@revition/plugin-dev', version: '0.0.0-canary.a06d97b' }], 'canary', { getDoc: never, sleep: async () => {}, attempts: 3, delayMs: 1 }),
+      /not visible on the canary dist-tag after 3 reads .*@revition\/plugin-dev@0\.0\.0-canary\.a06d97b/,
+    );
+    assert.equal(reads, 3);
+    // A dist-tag pointing at an OLDER canary is not this release; a version only in `versions` is not yet tagged.
+    assert.equal(isPublished({ 'dist-tags': { canary: '0.0.0-canary.1111111' }, versions: { '0.0.0-canary.1111111': {} } }, 'canary', '0.0.0-canary.a06d97b'), false);
+    assert.equal(isPublished({ 'dist-tags': {}, versions: { '0.0.0-canary.a06d97b': {} } }, 'canary', '0.0.0-canary.a06d97b'), false);
+    // Both publish jobs verify the whole manifest, not one package.
+    assert.match(job(RELEASE, 'publish-canary'), /verify-release\.mjs @revition\/cli canary --manifest release-artifacts\/manifest\.json/);
+    assert.match(job(RELEASE, 'publish-stable'), /verify-release\.mjs @revition\/cli "\$CHANNEL" --manifest release-artifacts\/manifest\.json/);
   });
 
   it('[CLI-T1.5.2-AC4] a publish from a fork or another workflow is refused; no npm token exists anywhere', () => {
