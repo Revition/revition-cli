@@ -6,6 +6,11 @@
   },
   "description": "The Revition command-line interface",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revition/revition-cli",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "bin": {
     "revition": "./bin/run",
@@ -23,7 +28,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json && node scripts/bundle-startup.mjs && node scripts/oclif-manifest.mjs",
-    "reference":"node scripts/command-reference.mjs",
+    "reference": "node scripts/command-reference.mjs",
     "reference:check": "node scripts/command-reference.mjs --check",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
