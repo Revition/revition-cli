@@ -149,7 +149,7 @@ describe('T1.1.3 output and UX', () => {
     assert.deepEqual(tables.filter((f) => !readFileSync(f, 'utf8').includes('terminalTable()')), []);
   });
 
-  it('[CLI-T2.5.2-AC3] no command prints typographic quotes (macOS walk: "build’s" in accessible and piped output)', async () => {
+  it('[CLI-T2.5.2-AC3] no new command output uses typographic quotes; the one legacy-parity line is the only exception', async () => {
     const { readdirSync, readFileSync, statSync } = await import('node:fs');
     const { join } = await import('node:path');
     const { fileURLToPath } = await import('node:url');
@@ -163,7 +163,13 @@ describe('T1.1.3 output and UX', () => {
     const files = [join(root, 'packages'), join(root, 'plugins')].flatMap(walk);
     assert.ok(files.length >= 50, `source files: ${files.length}`);
     // A legacy console and a screen reader read U+2018/2019/201C/201D badly; output strings stay ASCII quotes.
-    const curly = files.filter((f) => /[‘’“”]/u.test(readFileSync(f, 'utf8')));
+    // EXCEPTION (REVITION-CLI-PLAN.md:2069, T2.1.2 AC3 "Legacy `build` parity"; auditor #592): `build`'s success line
+    // is byte-for-byte the legacy CLI's (legacy/src/commands.ts:98), asserted by legacy-parity/build-parity.test.mjs.
+    const PARITY_LINE = "'ok: the project passes the build’s checks'";
+    const curly = files.filter((f) => /[‘’“”]/u.test(readFileSync(f, 'utf8').split(PARITY_LINE).join('')));
     assert.deepEqual(curly, []);
+    // The exception is that one line, once, in `build` only.
+    const withLine = files.filter((f) => readFileSync(f, 'utf8').includes(PARITY_LINE));
+    assert.deepEqual(withLine.map((f) => f.split(/[\\/]/).slice(-3).join('/')), ['src/commands/build.ts']);
   });
 });
