@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
+import { PRODUCTION_WEB_LINKS } from '../config/web-links.js';
 import { EXIT } from '../output/exit-codes.js';
 
 import { RevitionCliError } from './cli-error.js';
 
-export const SUPPORT_URL = 'https://developer.revition.com/cli/support';
+/**
+ * The public CLI support page. Not environment-bound (plan amendment 2026-11-27, #537): an unexpected error is
+ * rendered before any profile is known, and support is the public documentation for every environment.
+ */
+export const SUPPORT_URL = `${PRODUCTION_WEB_LINKS.developer}/cli/support`;
 
 /**
  * T1.1.4 - anything that is not a RevitionCliError becomes one generic message with a local trace id; the original

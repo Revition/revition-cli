@@ -135,6 +135,21 @@ describe('T1.1.6 help, suggestions, completion, doctor', () => {
     assert.equal(anon.summary.fail, 0);
   });
 
+  it('[CLI-T1.1.6-AC5] the cli-version check names the build\'s own channel and compares canaries by publish order', async () => {
+    // Auditor #539: a canary build said "0.1.0-canary.85a95ba is the latest on stable".
+    const same = await runDoctor({ ...HEALTHY, cliVersion: '0.1.0-canary.85a95ba', channel: 'canary', latestVersion: async () => '0.1.0-canary.85a95ba' });
+    const line = same.checks.find((c) => c.id === 'cli-version');
+    assert.equal(line?.status, 'ok');
+    assert.match(line?.message ?? '', /is the latest on canary\./);
+    const behind = await runDoctor({ ...HEALTHY, cliVersion: '0.1.0-canary.85a95ba', channel: 'canary', latestVersion: async () => '0.1.0-canary.0c1d2e3' });
+    assert.equal(behind.checks.find((c) => c.id === 'cli-version')?.status, 'warn');
+    // The command reads the dist-tag and the label of the build's own channel, never a fixed "stable".
+    const src = readFileSync(join(CLI_ROOT, 'src', 'commands', 'doctor.ts'), 'utf8');
+    assert.match(src, /channel: channelLabel\(channelOf\(cliVersion\)\)/);
+    assert.match(src, /\['dist-tags'\]\?\.\[channelOf\(cliVersion\)\]/);
+    assert.doesNotMatch(src, /channel: 'stable'/);
+  });
+
   it('[CLI-T1.1.6-AC5] the credential check probes GET /dev/me with the stored login, not only REVITION_TOKEN', async () => {
     // Auditor #522: after a browser login (no REVITION_TOKEN) doctor said "Not logged in" while auth status said signed in.
     const paths: string[] = [];

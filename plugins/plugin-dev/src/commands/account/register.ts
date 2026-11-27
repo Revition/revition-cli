@@ -4,12 +4,13 @@ import {
   confirmYes,
   RevitionCommand,
   usageError,
+  webLinksOf,
   type CommandContext,
   type CommandMeta,
   type HumanView,
 } from '@revition/cli-core';
 
-import { devApi, DEVELOPER_PORTAL_URL, type DeveloperAccount } from '../../api.js';
+import { devApi, type DeveloperAccount } from '../../api.js';
 
 export default class AccountRegister extends RevitionCommand<DeveloperAccount> {
   static override summary = 'Create your developer account (free; idempotent).';
@@ -40,7 +41,7 @@ export default class AccountRegister extends RevitionCommand<DeveloperAccount> {
     if (kind === 'tenant_member' && org === null) throw usageError('ORG_REQUIRED', 'A tenant member registers with --org <orgId>.');
     if (kind === 'independent' && org !== null) throw usageError('ORG_NOT_ALLOWED', 'An independent developer belongs to no workspace: drop --org.');
     if (f['accept-terms'] !== true) {
-      ctx.io.err(`The developer agreement is shown in the Developer Portal: ${DEVELOPER_PORTAL_URL}\n`);
+      ctx.io.err(`The developer agreement is shown in the Developer Portal: ${(await webLinksOf(ctx)).developer}\n`);
       if (!canPrompt(ctx.io, { json: ctx.flags.json, noInput: ctx.flags.noInput })) {
         throw usageError('TERMS_NOT_ACCEPTED', 'Registering needs the developer agreement accepted.', 'Re-run with --accept-terms.');
       }

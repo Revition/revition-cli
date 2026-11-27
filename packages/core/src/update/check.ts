@@ -20,6 +20,11 @@ export function channelOf(version: string): Channel {
   return 'latest';
 }
 
+/** The channel's name as users see it: the `latest` dist-tag is "stable". PURE. */
+export function channelLabel(channel: Channel): string {
+  return channel === 'latest' ? 'stable' : channel;
+}
+
 export function registryBase(env: Readonly<Record<string, string | undefined>>): string {
   // Trailing slashes off by a loop, not a /\/+$/ regex: the value comes from the environment (CodeQL polynomial ReDoS).
   let base = env['npm_config_registry'] ?? 'https://registry.npmjs.org';
@@ -40,7 +45,16 @@ export function updateCheckAllowed(i: {
   return true;
 }
 
-/** Semver-ish comparison of x.y.z[-pre]: is `a` newer than `b`? PURE. */
+/** A canary build `X.Y.Z-canary.<sha7>`: its suffix is a commit hash, which has NO order. PURE. */
+export function isCanaryBuild(version: string): boolean {
+  return /-canary\.[0-9a-f]+$/.test(version);
+}
+
+/**
+ * Semver-ish comparison of x.y.z[-pre]: is `a` newer than `b`? PURE. Two canary builds of the same x.y.z are never
+ * ordered by their hash (run 2026-11-27: 0.1.0-canary.85a95ba was offered a "newer" 0.1.0-canary.a06d97b); their
+ * order is the publish order, which only the registry's canary dist-tag carries (see `updateNotice`).
+ */
 export function isNewer(a: string, b: string): boolean {
   const parse = (v: string): [number[], string] => {
     const [core, pre = ''] = v.replace(/^v/, '').split('-', 2) as [string, string?];
@@ -52,7 +66,22 @@ export function isNewer(a: string, b: string): boolean {
   if (pa === pb) return false;
   if (pa === '') return true;
   if (pb === '') return false;
+  if (isCanaryBuild(a) && isCanaryBuild(b)) return false;
   return pa.localeCompare(pb, undefined, { numeric: true }) > 0;
+}
+
+/**
+ * Is `latest` (the cached dist-tag of the installed channel) an update for `installed`? PURE. For two canary builds
+ * of the same x.y.z: the canary dist-tag is moved forward by every publish, so it is newer exactly when it was read
+ * FOR this installed build (`c.installedVersion === installed`) and differs from it. A cache written for another
+ * build is stale for this question (the next check refreshes it).
+ */
+export function updateAvailable(c: UpdateCache, installed: string): boolean {
+  if (c.latest === null) return false;
+  if (isCanaryBuild(c.latest) && isCanaryBuild(installed) && c.latest.split('-')[0] === installed.split('-')[0]) {
+    return c.installedVersion === installed && c.latest !== installed;
+  }
+  return isNewer(c.latest, installed);
 }
 
 /** The notice (stderr) the next run prints, or null. */
@@ -60,7 +89,7 @@ export function updateNotice(c: UpdateCache | null, installed: string): string |
   if (c === null) return null;
   const lines: string[] = [];
   if (c.deprecated !== null && c.installedVersion === installed) lines.push(`warn revition ${installed} is deprecated: ${c.deprecated}`);
-  if (c.latest !== null && isNewer(c.latest, installed)) {
+  if (c.latest !== null && updateAvailable(c, installed)) {
     lines.push(`Update available ${installed} -> ${c.latest} (${c.channel === 'latest' ? 'stable' : c.channel}). Run: revition upgrade   Changelog: ${CHANGELOG_URL}`);
   }
   return lines.length === 0 ? null : `${lines.join('\n')}\n`;

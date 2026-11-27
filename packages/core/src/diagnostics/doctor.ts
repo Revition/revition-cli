@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { proxyFor, proxyLabel } from '../transport/proxy.js';
+import { isCanaryBuild, isNewer } from '../update/check.js';
 
 /**
  * T1.1.6 - `revition doctor`: one line per check with ok / warn / fail and a fix hint. It never prints a secret or a
@@ -51,11 +52,14 @@ const check = (id: string, status: DoctorCheck['status'], message: string, hint:
   hint,
 });
 
-function newer(a: string, b: string): boolean {
-  const pa = a.split(/[.-]/).map((x) => Number.parseInt(x, 10) || 0);
-  const pb = b.split(/[.-]/).map((x) => Number.parseInt(x, 10) || 0);
-  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) > (pb[i] ?? 0);
-  return false;
+/**
+ * Is `latest` (the channel's dist-tag, read live) newer than this build? Two canary builds are ordered by publish order,
+ * which the live canary dist-tag carries: a different canary there is the newer one (never a hash comparison).
+ */
+function newer(latest: string, installed: string): boolean {
+  if (latest === installed) return false;
+  if (isCanaryBuild(latest) && isCanaryBuild(installed)) return true;
+  return isNewer(latest, installed);
 }
 
 export async function runDoctor(d: DoctorDeps): Promise<DoctorReport> {

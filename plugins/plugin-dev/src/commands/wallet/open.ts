@@ -1,8 +1,8 @@
-import { canOpenBrowser, openBrowser, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import { canOpenBrowser, openBrowser, RevitionCommand, webLinksOf, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
 import { assertOpenable } from '../submissions/open.js';
 
-import { WALLET_PAGE_URL } from './show.js';
+import { walletPageUrl } from './show.js';
 
 interface Out {
   readonly url: string;
@@ -25,7 +25,8 @@ export default class WalletOpen extends RevitionCommand<Out> {
   };
 
   protected async run2(ctx: CommandContext): Promise<Out> {
-    const url = assertOpenable(WALLET_PAGE_URL);
+    const links = await webLinksOf(ctx);
+    const url = assertOpenable(walletPageUrl(links), links);
     const opened = !ctx.flags.json && canOpenBrowser(ctx.env, process.platform) ? await openBrowser(url) : false;
     return { url, opened };
   }

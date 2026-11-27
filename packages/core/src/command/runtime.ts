@@ -4,6 +4,7 @@ import { authConfigFor, revokeRefreshToken } from '../auth/token-exchange.js';
 import { isAllowlistedHost } from '../config/host-allowlist.js';
 import { loadProjectFile, loadUserConfig, resolveSettings, type EffectiveSettings } from '../config/load.js';
 import { defaultCliPaths, type CliPaths } from '../config/paths.js';
+import { PRODUCTION_WEB_LINKS, webLinksFor, type WebLinks } from '../config/web-links.js';
 import { selectStore } from '../credentials/select.js';
 import type { CredentialStore } from '../credentials/store.js';
 import { RevitionCliError, usageError } from '../errors/cli-error.js';
@@ -24,6 +25,21 @@ export interface Runtime {
   readonly host: string;
   readonly store: CredentialStore | null;
   readonly session: SessionClient;
+  /** Every web link of this profile (plan amendment 2026-11-27, #537): from its `webOrigin`, else production. */
+  readonly links: WebLinks;
+}
+
+/**
+ * The web links of the run's profile, for a command that does not need the full runtime (it opens or prints a page).
+ * A config that cannot be read falls back to production links (the command itself reports the config problem).
+ */
+export async function webLinksOf(ctx: CommandContext): Promise<WebLinks> {
+  const paths = defaultCliPaths();
+  const loaded = await loadUserConfig(paths.configFile).catch(() => null);
+  if (loaded === null) return PRODUCTION_WEB_LINKS;
+  const project = await loadProjectFile(process.cwd()).catch(() => null);
+  const settings = resolveSettings({ flags: { profile: ctx.flags.profile }, env: ctx.env, project: project?.project ?? null, user: loaded.config });
+  return webLinksFor(loaded.config.profiles[settings.profile.value]?.webOrigin);
 }
 
 export function passphrasePrompt(ctx: CommandContext): () => Promise<string> {
@@ -66,10 +82,11 @@ export async function runtime(ctx: CommandContext): Promise<Runtime> {
   } catch (e) {
     if (!(e instanceof RevitionCliError) || e.error.code !== 'CREDENTIAL_STORE_UNAVAILABLE') throw e;
   }
-  const session = await createSessionClient({ profile, host, env: ctx.env, stateDir: paths.stateDir, cliVersion: ctx.cliVersion, store, warn: ctx.warn });
+  const links = webLinksFor(config.profiles[profile]?.webOrigin);
+  const session = await createSessionClient({ profile, host, env: ctx.env, stateDir: paths.stateDir, cliVersion: ctx.cliVersion, store, warn: ctx.warn, links });
   if (store !== null && store.backend === 'keychain') {
     // T1.3.4: an offline logout's queued revocations are retried at the next run (best effort, never blocking).
     await retryQueued(paths.stateDir, logoutDeps(store, host, ctx.env, ctx.cliVersion)).catch(() => 0);
   }
-  return { settings, paths, profile, host, store, session };
+  return { settings, paths, profile, host, store, session, links };
 }

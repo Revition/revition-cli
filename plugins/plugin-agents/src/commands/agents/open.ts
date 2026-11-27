@@ -1,24 +1,36 @@
 import { Args, Flags } from '@oclif/core';
-import { canOpenBrowser, EXIT, openBrowser, RevitionCliError, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  canOpenBrowser,
+  EXIT,
+  isWebLink,
+  openBrowser,
+  PRODUCTION_WEB_LINKS,
+  RevitionCliError,
+  RevitionCommand,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
 export const OPEN_ACTIONS = ['publish', 'promote'] as const;
 
 /**
  * The portal page where a person publishes an agent's draft or promotes an environment: the agent's page, the same
  * page the server names when it refuses a CLI token on those routes (sentinel/cli-scopes human-only-routes.ts
- * portalUrlFor: `/deployments/...` -> `/foundry/agents/{id}`). PURE.
+ * portalUrlFor: `/deployments/...` -> `/foundry/agents/{id}`), on the profile's web app (plan amendment 2026-11-27). PURE.
  */
-export function agentPageUrl(agentId: string): string {
-  return `https://app.revition.com/foundry/agents/${encodeURIComponent(agentId)}`;
+export function agentPageUrl(agentId: string, links: WebLinks = PRODUCTION_WEB_LINKS): string {
+  return `${links.app}/foundry/agents/${encodeURIComponent(agentId)}`;
 }
 
-/** Only Revition pages over https are opened. */
-export function assertRevitionPage(url: string): string {
-  const u = new URL(url);
-  if (u.protocol !== 'https:' || !['app.revition.com', 'developer.revition.com'].includes(u.host)) {
+/** Only https pages on the profile's own web hosts are opened. */
+export function assertRevitionPage(url: string, links: WebLinks = PRODUCTION_WEB_LINKS): string {
+  if (!isWebLink(url, links)) {
     throw new RevitionCliError({ code: 'URL_NOT_ALLOWED', message: `Refusing to open ${url}: not a Revition page.` }, EXIT.usage);
   }
-  return u.toString();
+  return new URL(url).toString();
 }
 
 interface Out {
@@ -48,7 +60,8 @@ export default class AgentsOpen extends RevitionCommand<Out> {
   protected async run2(ctx: CommandContext): Promise<Out> {
     const agentId = String(ctx.args['id']);
     const a = ctx.commandFlags['action'];
-    const url = assertRevitionPage(agentPageUrl(agentId));
+    const links = await webLinksOf(ctx);
+    const url = assertRevitionPage(agentPageUrl(agentId, links), links);
     const opened = !ctx.flags.json && canOpenBrowser(ctx.env, process.platform) ? await openBrowser(url) : false;
     return { agentId, action: OPEN_ACTIONS.find((x) => x === a) ?? null, url, opened };
   }

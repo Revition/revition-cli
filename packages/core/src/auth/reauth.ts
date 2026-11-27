@@ -1,3 +1,4 @@
+import { PRODUCTION_WEB_LINKS, type WebLinks } from '../config/web-links.js';
 import { RevitionCliError } from '../errors/cli-error.js';
 import { EXIT } from '../output/exit-codes.js';
 import type { CredentialKey, CredentialStore, StoredCredential } from '../credentials/store.js';
@@ -23,6 +24,8 @@ import { authConfigFor, decodeClaims, OAuthError, refreshTokens, type TokenSet }
 export interface ReauthDeps extends LockDeps {
   readonly store: CredentialStore;
   readonly key: CredentialKey;
+  /** The profile's web links, for the sessions page in the reuse hint (absent = production). */
+  readonly links?: WebLinks;
   readonly stateDir: string;
   readonly skew: () => number | null;
   readonly refresh: (refreshToken: string) => Promise<TokenSet>;
@@ -31,13 +34,21 @@ export interface ReauthDeps extends LockDeps {
 }
 
 export const SESSION_ENDED = "Your session ended (it may have been revoked). Run 'revition login'.";
-/** The Developer Portal's CLI sessions page (the platform's `developer/cli-sessions` route, served on its own host). */
-export const SESSIONS_PAGE_URL = 'https://developer.revition.com/cli-sessions';
-export const REUSE_HINT = `If you did not run commands in parallel from another copy of these credentials, your token may have been copied; review sessions at ${SESSIONS_PAGE_URL}.`;
+/** The Developer Portal's CLI sessions page of a profile's web links (plan amendment 2026-11-27, #537). PURE. */
+export function sessionsPageUrl(links: WebLinks): string {
+  return `${links.developer}/cli-sessions`;
+}
+export function reuseHint(links: WebLinks): string {
+  return `If you did not run commands in parallel from another copy of these credentials, your token may have been copied; review sessions at ${sessionsPageUrl(links)}.`;
+}
+/** The production values (a profile without `webOrigin`). */
+export const SESSIONS_PAGE_URL = sessionsPageUrl(PRODUCTION_WEB_LINKS);
+export const REUSE_HINT = reuseHint(PRODUCTION_WEB_LINKS);
 
-export async function sessionEnded(deps: Pick<ReauthDeps, 'store' | 'key'>, reuse: boolean): Promise<RevitionCliError> {
+export async function sessionEnded(deps: Pick<ReauthDeps, 'store' | 'key' | 'links'>, reuse: boolean): Promise<RevitionCliError> {
   await deps.store.delete(deps.key);
-  return new RevitionCliError({ code: 'SESSION_ENDED', message: SESSION_ENDED, hint: reuse ? REUSE_HINT : null }, EXIT.auth);
+  const hint = reuse ? reuseHint(deps.links ?? PRODUCTION_WEB_LINKS) : null;
+  return new RevitionCliError({ code: 'SESSION_ENDED', message: SESSION_ENDED, hint }, EXIT.auth);
 }
 
 export type AuthMode = 'pat' | 'session' | 'none';
@@ -51,6 +62,8 @@ export interface SessionClientInputs {
   /** null when no credential store is available (and no PAT): then the run is signed out. */
   readonly store: CredentialStore | null;
   readonly warn: (m: string) => void;
+  /** The profile's web links (plan amendment 2026-11-27, #537); absent = production. */
+  readonly links?: WebLinks;
 }
 
 export interface SessionClient {
@@ -85,6 +98,7 @@ export async function createSessionClient(i: SessionClientInputs): Promise<Sessi
   const deps: ReauthDeps = {
     store,
     key,
+    ...(i.links === undefined ? {} : { links: i.links }),
     stateDir: i.stateDir,
     now: () => Date.now(),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),

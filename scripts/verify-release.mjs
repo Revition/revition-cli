@@ -44,10 +44,17 @@ export function provenanceProblems(attestations, { name, version }, expected = E
   return problems;
 }
 
-/** A canary on `latest` (or any prerelease on `latest`) is a release-process failure. PURE. */
+/**
+ * The npm name-reservation placeholder each package was created with. It sits on `latest` until the first stable
+ * release (run 45996800323 failed on it); it is not a release of this pipeline, so it is not a prerelease on `latest`.
+ */
+export const RESERVED_PLACEHOLDER = '0.0.0-reserved';
+
+/** A canary on `latest` (or any other prerelease on `latest`) is a release-process failure. PURE. */
 export function distTagProblems(distTags) {
   const latest = distTags?.latest;
-  return typeof latest === 'string' && latest.includes('-') ? [`latest points at a prerelease: ${latest}`] : [];
+  if (typeof latest !== 'string' || latest === RESERVED_PLACEHOLDER) return [];
+  return latest.includes('-') ? [`latest points at a prerelease: ${latest}`] : [];
 }
 
 /** Is `version` of a package visible on the channel: the dist-tag points at it and its version document exists. PURE. */

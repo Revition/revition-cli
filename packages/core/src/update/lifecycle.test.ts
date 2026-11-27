@@ -112,6 +112,20 @@ describe('Set 4 lifecycle (core)', () => {
     assert.equal(offline.latest, null);
   });
 
+  it('[CLI-T1.4.1-AC5] two canary builds are never ordered by hash: no downgrade is offered (auditor #539)', () => {
+    // The user's run: installed 0.1.0-canary.85a95ba, a cache written under 0.1.0-canary.a06d97b said latest a06d97b.
+    const stale = { channel: 'canary' as const, checkedAt: 1, latest: '0.1.0-canary.a06d97b', deprecated: null, installedVersion: '0.1.0-canary.a06d97b' };
+    assert.equal(updateNotice(stale, '0.1.0-canary.85a95ba'), null);
+    assert.equal(isNewer('0.1.0-canary.a06d97b', '0.1.0-canary.85a95ba'), false);
+    assert.equal(isNewer('0.1.0-canary.85a95ba', '0.1.0-canary.a06d97b'), false);
+    // Publish order: the canary dist-tag read FOR this build and different from it is the newer canary.
+    const fresh = { ...stale, latest: '0.1.0-canary.0c1d2e3', installedVersion: '0.1.0-canary.85a95ba' };
+    assert.match(updateNotice(fresh, '0.1.0-canary.85a95ba') ?? '', /Update available 0\.1\.0-canary\.85a95ba -> 0\.1\.0-canary\.0c1d2e3 \(canary\)/);
+    assert.equal(updateNotice({ ...fresh, latest: '0.1.0-canary.85a95ba' }, '0.1.0-canary.85a95ba'), null);
+    // A higher x.y.z is still newer by semver.
+    assert.equal(isNewer('0.2.0-canary.aaaaaaa', '0.1.0-canary.fffffff'), true);
+  });
+
   it('[CLI-T1.4.2-AC2] DO_NOT_TRACK=1 beats config on; unset is off', () => {
     assert.equal(telemetryEnabled({}, 'on'), true);
     assert.equal(telemetryEnabled({ DO_NOT_TRACK: '1' }, 'on'), false);

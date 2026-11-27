@@ -1,5 +1,5 @@
 import { Args } from '@oclif/core';
-import { RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import { RevitionCommand, webLinksOf, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
 import { devApi } from '../../api.js';
 import { branchReviewUrl, type PipelineStageRow } from '../deploy.js';
@@ -43,7 +43,7 @@ export default class BranchesStatus extends RevitionCommand<Out> {
       reviewedBy: b.reviewedBy ?? null,
       pipeline: b.pipeline ?? [],
       artifactRef: b.artifactRef ?? null,
-      reviewUrl: branchReviewUrl(agentId),
+      reviewUrl: branchReviewUrl(agentId, await webLinksOf(ctx)),
     };
   }
 

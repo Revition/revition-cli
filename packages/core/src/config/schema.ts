@@ -20,6 +20,15 @@ export const ProfileSchema = z
       .string()
       .regex(/^https:\/\/([a-z0-9-]+\.)*revition\.com$/)
       .optional(),
+    /**
+     * Plan amendment 2026-11-27 (auditor ruling #537, REVITION-CLI-PLAN.md:1391) - this profile's web app origin, when
+     * it is not production: every portal / platform link is derived from it (config/web-links.ts). Staging:
+     * https://staging.revition.com. Absent = the production web hosts. Only a Revition https origin is accepted.
+     */
+    webOrigin: z
+      .string()
+      .regex(/^https:\/\/([a-z0-9-]+\.)*revition\.com$/)
+      .optional(),
   })
   .strict();
 export type Profile = z.infer<typeof ProfileSchema>;

@@ -1,18 +1,31 @@
 import { Args, Flags } from '@oclif/core';
-import { canOpenBrowser, openBrowser, RevitionCliError, RevitionCommand, EXIT, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  canOpenBrowser,
+  isWebLink,
+  openBrowser,
+  PRODUCTION_WEB_LINKS,
+  RevitionCliError,
+  RevitionCommand,
+  EXIT,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
 import { devApi, seg } from '../../api.js';
-import { appOf, PUBLISH_PAGE_URL, type SubmissionView } from '../submit.js';
+import { appOf, publishPageUrl, type SubmissionView } from '../submit.js';
 
-/** The only pages a CLI hand-off opens: the Revition web app and the developer portal, over https. */
-export const OPEN_ALLOWLIST: readonly string[] = ['developer.revition.com', 'app.revition.com'];
+/** The production hand-off hosts (a profile without `webOrigin`): the Revition web app and the developer portal. */
+export const OPEN_ALLOWLIST: readonly string[] = PRODUCTION_WEB_LINKS.hosts;
 
-export function assertOpenable(url: string): string {
-  const u = new URL(url);
-  if (u.protocol !== 'https:' || !OPEN_ALLOWLIST.includes(u.host)) {
+/** Only an https page on the profile's own web hosts is opened (plan amendment 2026-11-27, #537). */
+export function assertOpenable(url: string, links: WebLinks = PRODUCTION_WEB_LINKS): string {
+  if (!isWebLink(url, links)) {
     throw new RevitionCliError({ code: 'URL_NOT_ALLOWED', message: `Refusing to open ${url}: not a Revition page.` }, EXIT.usage);
   }
-  return u.toString();
+  return new URL(url).toString();
 }
 
 interface Out {
@@ -49,7 +62,8 @@ export default class SubmissionsOpen extends RevitionCommand<Out> {
     const api = await devApi(ctx);
     const s = (await api.request<SubmissionView>({ method: 'GET', path: `/dev/apps/${seg(appId)}/submissions/${seg(version)}` })).body;
     if (s.state !== 'certified') ctx.warn(`${version} is ${s.state}: only a certified version can be published.`);
-    const url = assertOpenable(PUBLISH_PAGE_URL);
+    const links = await webLinksOf(ctx);
+    const url = assertOpenable(publishPageUrl(links), links);
     const opened = !ctx.flags.json && canOpenBrowser(ctx.env, process.platform) ? await openBrowser(url) : false;
     return { appId, version, state: s.state, url, opened };
   }

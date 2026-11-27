@@ -24,6 +24,7 @@ credential store (`revition login`), or in `REVITION_TOKEN` for CI.
 | `profiles.<name>.host` | a Revition host (`*.revition.com`) | `api.revition.com` | `REVITION_HOST` |
 | `profiles.<name>.org` | the last selected org (the server re-validates it) | none | `REVITION_ORG` |
 | `profiles.<name>.authMethod` | `browser`, `device`, `token` | `browser` | `REVITION_AUTH_METHOD` |
+| `profiles.<name>.webOrigin` | the environment's web app origin (`https://*.revition.com`), e.g. `https://staging.revition.com` for staging; every portal and platform link the CLI prints or opens uses it | none (production: `developer.revition.com`, `app.revition.com`) | none |
 | `telemetry` | `unset`, `on`, `off` | `unset` | `REVITION_TELEMETRY` |
 | `updateCheck` | `true`, `false` | `true` | `REVITION_UPDATE_CHECK` |
 | `color` | `auto`, `always`, `never` | `auto` | `REVITION_COLOR` |

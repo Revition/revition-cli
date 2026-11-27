@@ -14,6 +14,8 @@ import {
   RevitionCliError,
   RevitionCommand,
   runDoctor,
+  channelLabel,
+  channelOf,
   status,
   storeFor,
   type CommandContext,
@@ -64,12 +66,14 @@ async function realDoctorDeps(ctx: CommandContext, cliVersion: string): Promise<
   const host = settings?.host.value ?? 'api.revition.com';
   return {
     cliVersion,
-    channel: 'stable',
+    // The channel this build came from (its prerelease suffix), never a fixed "stable": a canary build is compared with
+    // the canary dist-tag and reported as canary (auditor #539).
+    channel: channelLabel(channelOf(cliVersion)),
     latestVersion: async () => {
       const url = new URL('https://registry.npmjs.org/@revition%2fcli');
       const res = await request(url, { dispatcher: dispatcherFor(url, ctx.env), headersTimeout: PROBE_TIMEOUT_MS, bodyTimeout: PROBE_TIMEOUT_MS });
       const body = (await res.body.json()) as { 'dist-tags'?: Record<string, string> };
-      return body['dist-tags']?.['latest'] ?? null;
+      return body['dist-tags']?.[channelOf(cliVersion)] ?? null;
     },
     nodeVersion: process.version,
     platform: platform(),

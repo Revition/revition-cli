@@ -1,9 +1,9 @@
 import { resolve } from 'node:path';
 
 import { Flags } from '@oclif/core';
-import { EXIT, RevitionCliError, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import { EXIT, RevitionCliError, RevitionCommand, webLinksOf, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
-import { devApi, DEVELOPER_PORTAL_URL } from '../api.js';
+import { devApi } from '../api.js';
 import { localChecks, type CheckId, type Problem } from '../checks/local-checks.js';
 import { readProjectDir } from '../project/read-project.js';
 
@@ -73,7 +73,7 @@ export default class Build extends RevitionCommand<BuildOut> {
           ctx.warn('Local checks only: the platform could not be reached, so its own checks did not run.');
         } else if (e instanceof RevitionCliError && e.exitCode === EXIT.payment) {
           throw new RevitionCliError(
-            { ...e.error, hint: `The build check is billed to your developer wallet. Add funds in the Developer Portal: ${DEVELOPER_PORTAL_URL}` },
+            { ...e.error, hint: `The build check is billed to your developer wallet. Add funds in the Developer Portal: ${(await webLinksOf(ctx)).developer}` },
             EXIT.payment
           );
         } else {
