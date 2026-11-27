@@ -7,6 +7,7 @@ import { undoLast } from '../executor/backup.js';
 import { LocalExecutor, type ToolResult } from '../executor/executor.js';
 
 import type { KeyInput, StopSignal } from './interrupt.js';
+import { PatchRetryGuard } from './patch-retry-guard.js';
 import { banner, costLine, renderEvent, type AssistEvent } from './render.js';
 import { parseSlash, SLASH_HELP } from './slash.js';
 
@@ -82,6 +83,7 @@ export class AssistRun {
   private spend: { spentCredits: number; budgetCredits: number } | null = null;
   private readonly text: string[] = [];
   private readonly actions: { tool: string; ok: boolean; error?: string }[] = [];
+  private readonly retryGuard = new PatchRetryGuard();
   private turns = 0;
   private status = 'open';
   private readonly executor: LocalExecutor;
@@ -192,7 +194,8 @@ export class AssistRun {
       if (requests.length > 0 && !done) {
         for (const r of requests) {
           if (d.stop.requested) break;
-          const res = await this.executor.handle({ tool: r.tool, args: r.args, reason: r.reason });
+          const res = this.retryGuard.check(r) ?? (await this.executor.handle({ tool: r.tool, args: r.args, reason: r.reason }));
+          this.retryGuard.note(r, res);
           this.actions.push({ tool: res.tool, ok: res.ok, ...(res.error === undefined ? {} : { error: res.error }) });
           if (!res.ok) this.say({ out: '', err: `  -> ${notDoneReason(res)}\n` });
           results.push(res);
