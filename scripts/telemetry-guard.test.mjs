@@ -64,7 +64,7 @@ describe('[CLI-T1.4.2-AC1] zero telemetry calls without an opt-in, across the wh
     assert.equal(pkg.scripts.test, 'node scripts/test-all.mjs');
     assert.match(SUITES, /scripts\/\*\.test\.mjs/u);
     assert.match(SUITES, /legacy-parity\/\*\.test\.mjs/u);
-    assert.match(SUITES, /pnpm -r --if-present run test/u);
+    assert.match(SUITES, /pnpm -r --workspace-concurrency=\d+ --if-present run test/u);
     assert.match(withSpy('--max-old-space-size=4096'), /^--max-old-space-size=4096 --import=file:\/\//u);
     assert.ok(SPY.endsWith(join('packages', 'test-kit', 'src', 'telemetry-spy.mjs')));
   });

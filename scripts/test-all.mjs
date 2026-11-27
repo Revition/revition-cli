@@ -9,8 +9,24 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const SPY = join(ROOT, 'packages', 'test-kit', 'src', 'telemetry-spy.mjs');
-/** The suites, unchanged from the previous `test` script. */
-export const SUITES = 'node --test "scripts/*.test.mjs" && node --import tsx --test "legacy-parity/*.test.mjs" && pnpm -r --if-present run test';
+/**
+ * How many package suites run at once: pnpm's default (4), except on Windows, where they run one at a time. Each suite
+ * spawns node / CLI children; four at once starved the windows-latest runner (PR #28, run 46029917695: a program
+ * "timed out after 10000 ms" AFTER it had started, then `revition mcp serve` never answered within its 180 s window).
+ * PURE.
+ */
+export function workspaceConcurrency(platform) {
+  return platform === 'win32' ? 1 : 4;
+}
+
+/** The suites, unchanged from the previous `test` script except the package concurrency above. PURE. */
+export function suitesFor(platform) {
+  return (
+    'node --test "scripts/*.test.mjs" && node --import tsx --test "legacy-parity/*.test.mjs" && ' +
+    `pnpm -r --workspace-concurrency=${workspaceConcurrency(platform)} --if-present run test`
+  );
+}
+export const SUITES = suitesFor(process.platform);
 
 /** Telemetry requests the spy saw from a run that did not opt in (one JSON line each). PURE. */
 export function telemetryViolations(logText) {
