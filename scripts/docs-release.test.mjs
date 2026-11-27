@@ -89,7 +89,7 @@ describe('T1.6.3 / T2.5.3 docs and the stable release', () => {
     const job = next < 0 ? wf.slice(start) : wf.slice(start, start + 1 + next);
     assert.match(job, /environment: npm-release/u);
     assert.match(job, /id-token: write/u);
-    assert.match(job, /npm publish "release-artifacts\/\$f" --tag "\$CHANNEL" --access public/u);
+    assert.match(job, /npm publish "\.\/release-artifacts\/\$f" --tag "\$CHANNEL" --access public/u);
     assert.match(job, /node scripts\/verify-release\.mjs @revition\/cli "\$CHANNEL"/u);
     assert.doesNotMatch(wf, /NPM_TOKEN|NODE_AUTH_TOKEN|_authToken/u, 'no npm token anywhere: provenance comes from the OIDC publish');
     assert.match(wf, /options: \[canary, next, latest\]/u);

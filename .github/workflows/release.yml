@@ -96,7 +96,8 @@ jobs:
       - name: npm publish --tag canary (OIDC trusted publishing)
         run: |
           for f in $(node -p "require('./release-artifacts/manifest.json').map((p) => p.file).join(' ')"); do
-            npm publish "release-artifacts/$f" --tag canary --access public
+            # "./" makes npm read a local tarball; a bare "dir/file" is parsed as a GitHub shorthand (run 45942734036).
+            npm publish "./release-artifacts/$f" --tag canary --access public
           done
       - run: node scripts/verify-release.mjs @revition/cli canary
 
@@ -278,7 +279,7 @@ jobs:
       - name: npm publish --tag next|latest (OIDC trusted publishing)
         run: |
           for f in $(node -p "require('./release-artifacts/manifest.json').map((p) => p.file).join(' ')"); do
-            npm publish "release-artifacts/$f" --tag "$CHANNEL" --access public
+            npm publish "./release-artifacts/$f" --tag "$CHANNEL" --access public
           done
       - run: node scripts/verify-release.mjs @revition/cli "$CHANNEL"
       - uses: chainguard-dev/actions/setup-gitsign@f133c9e8aae4b7e9031c254d34cacb2fa8f83c31 # v1.7.3
