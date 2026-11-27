@@ -67,7 +67,10 @@ describe('assist on a real terminal (PTY)', { skip: SKIP }, () => {
     const send = (line: string): void => void child.stdin.write(`${line}\r`);
     const onData = (d: Buffer): void => {
       out += d.toString();
-      const fresh = out.slice(seenUpTo);
+      // The prompt line is redrawn with cursor controls (ESC[1G ESC[0J after "> "): match on the text a person sees, or
+      // the "> " prompt is never recognised and /undo is never sent (local rehearsal 2026-11-27, transcript tail).
+      // eslint-disable-next-line no-control-regex
+      const fresh = out.slice(seenUpTo).replace(/\u001b\[[0-9;]*[A-Za-z]/gu, '');
       if (/Apply this change to [^\n]*\?/u.test(fresh) && !applied) {
         seenUpTo = out.length;
         applied = true;
@@ -75,7 +78,7 @@ describe('assist on a real terminal (PTY)', { skip: SKIP }, () => {
       } else if (/Run `[^`]*`\?/u.test(fresh)) {
         seenUpTo = out.length;
         send('y');
-      } else if (/(^|\n)> $/u.test(fresh)) {
+      } else if (/(^|\n)> *$/u.test(fresh)) {
         seenUpTo = out.length;
         if (applied && !undoSent) {
           changedSeen = readFileSync(file, 'utf8');
