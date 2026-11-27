@@ -42,7 +42,9 @@ describe('T1.5.2 trusted publishing, provenance, channels', () => {
     const canary = job(RELEASE, 'publish-canary');
     assert.match(canary, /environment: npm-release/);
     assert.match(canary, /id-token: write/);
-    assert.match(canary, /npm publish "release-artifacts\/\$f" --tag canary/);
+    // A local tarball path starts with "./": a bare "dir/file" is read by npm as a GitHub shorthand (run 45942734036).
+    assert.match(canary, /npm publish "\.\/release-artifacts\/\$f" --tag canary/);
+    assert.doesNotMatch(RELEASE, /npm publish "release-artifacts\//);
     assert.match(canary, /verify-release\.mjs @revition\/cli canary/);
     assert.match(RELEASE, /on:\n {2}push:\n {4}branches: \[main\]/);
     assert.deepEqual(provenanceProblems([attestation()], { name: '@revition/cli', version: '0.2.0' }), []);
