@@ -230,7 +230,9 @@ describe('Phase 2 developer journey', { skip: SKIP }, () => {
     const list = data<{ tokens: Array<{ tokenId: string; prefix: string; revokedAt: string | null }> }>(await cli(['token', 'list', '--json']));
     tokenId = list.tokens.find((t) => t.revokedAt === null && TOKEN.startsWith(t.prefix))?.tokenId ?? '';
     assert.notEqual(tokenId, '');
-    assert.equal((await cli(['token', 'revoke', tokenId, '--yes'])).code, 0);
+    // The matrix (.github/workflows/phase2-journey.yml) runs Linux then Windows on ONE token: only the last run revokes
+    // it (REVITION_E2E_KEEP_TOKEN=1 on the first). The leak suite below runs on every OS either way.
+    if (E['REVITION_E2E_KEEP_TOKEN'] !== '1') assert.equal((await cli(['token', 'revoke', tokenId, '--yes'])).code, 0);
     const all = captured.join('\n');
     assert.equal(all.includes(TOKEN), false, 'the token value was printed');
     assert.equal(all.includes(SECRET_VALUE), false, 'the secret value was printed');
