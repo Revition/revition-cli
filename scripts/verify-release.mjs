@@ -72,12 +72,8 @@ export async function waitForPublished(packages, channel, { getDoc, sleep, attem
   for (let i = 1; i <= attempts; i += 1) {
     const still = [];
     for (const p of missing) {
-      let doc = null;
-      try {
-        doc = await getDoc(p.name);
-      } catch {
-        doc = null; // a 404 for a first publish, or a transient registry error: read it again on the next attempt
-      }
+      // A 404 for a first publish, or a transient registry error: read it again on the next attempt.
+      const doc = await getDoc(p.name).catch(() => null);
       if (isPublished(doc, channel, p.version)) docs.set(p.name, doc);
       else still.push(p);
     }
