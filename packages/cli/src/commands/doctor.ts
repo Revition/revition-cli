@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import {
-  ApiClient,
+  createSessionClient,
   defaultCliPaths,
   dispatcherFor,
   loadProjectFile,
@@ -15,6 +15,7 @@ import {
   RevitionCommand,
   runDoctor,
   status,
+  storeFor,
   type CommandContext,
   type CommandMeta,
   type DoctorDeps,
@@ -22,6 +23,8 @@ import {
   type HumanView,
 } from '@revition/cli-core';
 import { request } from 'undici';
+
+import { sessionTokenState } from '../doctor-credential.js';
 
 const run = promisify(execFile);
 const PROBE_TIMEOUT_MS = 5_000;
@@ -76,16 +79,11 @@ async function realDoctorDeps(ctx: CommandContext, cliVersion: string): Promise<
     configReadable: async () => ({ ok: loaded.ok, detail: loaded.detail }),
     credentialBackend: () => credentialBackend(ctx.env),
     tokenState: async () => {
-      // The credential store arrives with T1.3.1; until then only REVITION_TOKEN (CI) can be signed in.
-      const token = ctx.env['REVITION_TOKEN'];
-      if (token === undefined || token === '') return 'not_logged_in';
-      const client = new ApiClient({ host, token: async () => token, cliVersion, retries: 0, timeoutMs: PROBE_TIMEOUT_MS }, { env: ctx.env });
-      try {
-        await client.request({ method: 'GET', path: '/dev/me' });
-        return 'valid';
-      } catch (e) {
-        return e instanceof RevitionCliError && e.exitCode === 3 ? 'invalid' : 'unreachable';
-      }
+      // The run's own session (REVITION_TOKEN, else the profile's stored login): the same client every command uses.
+      const profile = settings?.profile.value ?? 'default';
+      const store = await storeFor(ctx, profile, paths.stateDir).catch(() => null);
+      const session = await createSessionClient({ profile, host, env: ctx.env, stateDir: paths.stateDir, cliVersion, store, warn: ctx.warn });
+      return sessionTokenState(session);
     },
     probeHost: async () => {
       const url = new URL(`https://${host}/`);
