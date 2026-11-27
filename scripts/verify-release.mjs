@@ -6,7 +6,7 @@
 // Usage: node scripts/verify-release.mjs <package> <channel>
 import { Buffer } from 'node:buffer';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,20 +50,68 @@ export function distTagProblems(distTags) {
   return typeof latest === 'string' && latest.includes('-') ? [`latest points at a prerelease: ${latest}`] : [];
 }
 
+/** Is `version` of a package visible on the channel: the dist-tag points at it and its version document exists. PURE. */
+export function isPublished(doc, channel, version) {
+  const tagged = doc?.['dist-tags']?.[channel];
+  if (version === undefined) return typeof tagged === 'string';
+  return tagged === version && doc?.versions?.[version] !== undefined;
+}
+
+// npm answers a publish with "Your package is being processed and may take a few minutes to become available": the
+// version reaches the registry asynchronously (run 45989396956: plugin-dev visible 4 min after its publish, plugin-assist
+// later). A read right after the publish loop is a race, so every check first waits for the version, BOUNDED.
+export const WAIT = { attempts: 40, delayMs: 15_000 };
+
+/**
+ * Wait until every `{ name, version }` is visible on `channel`, re-reading the registry up to `attempts` times. Returns
+ * each package's registry document; throws naming every package still missing (never waits forever).
+ */
+export async function waitForPublished(packages, channel, { getDoc, sleep, attempts = WAIT.attempts, delayMs = WAIT.delayMs }) {
+  const docs = new Map();
+  let missing = [...packages];
+  for (let i = 1; i <= attempts; i += 1) {
+    const still = [];
+    for (const p of missing) {
+      // A 404 for a first publish, or a transient registry error: read it again on the next attempt.
+      const doc = await getDoc(p.name).catch(() => null);
+      if (isPublished(doc, channel, p.version)) docs.set(p.name, doc);
+      else still.push(p);
+    }
+    missing = still;
+    if (missing.length === 0) return docs;
+    if (i < attempts) await sleep(delayMs);
+  }
+  const list = missing.map((p) => `${p.name}@${p.version ?? '?'}`).join(', ');
+  throw new Error(`not visible on the ${channel} dist-tag after ${attempts} reads ${delayMs / 1000} s apart: ${list}`);
+}
+
 async function getJson(url) {
-  const res = await globalThis.fetch(url, { headers: { accept: 'application/json' } });
+  const res = await globalThis.fetch(url, { headers: { accept: 'application/json', 'cache-control': 'no-cache' } });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   return res.json();
 }
 
+const encName = (name) => encodeURIComponent(name).replace(/^%40/u, '@');
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [name, channel = 'latest'] = process.argv.slice(2);
-  const enc = encodeURIComponent(name).replace(/^%40/u, '@');
-  const doc = await getJson(`https://registry.npmjs.org/${enc}`);
-  const version = doc['dist-tags']?.[channel];
+  // node scripts/verify-release.mjs <package> <channel> [--manifest <release-artifacts/manifest.json>]
+  const args = process.argv.slice(2);
+  const at = args.indexOf('--manifest');
+  const manifestPath = at >= 0 ? args[at + 1] : undefined;
+  const [name, channel = 'latest'] = args.filter((_, i) => at < 0 || (i !== at && i !== at + 1));
+  // Every package of the release (the CLI depends on each plugin at its exact version, so one missing plugin fails the
+  // install below); without a manifest, only the named package at whatever its channel points to.
+  const manifest = manifestPath === undefined ? [{ name }] : JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const docs = await waitForPublished(manifest, channel, { getDoc: (n) => getJson(`https://registry.npmjs.org/${encName(n)}`), sleep });
+  const problems = [];
+  for (const p of manifest) {
+    const v = docs.get(p.name)['dist-tags'][channel];
+    const att = await getJson(`https://registry.npmjs.org/-/npm/v1/attestations/${encName(p.name)}@${v}`);
+    problems.push(...provenanceProblems(att.attestations, { name: p.name, version: v }), ...distTagProblems(docs.get(p.name)['dist-tags']));
+  }
+  const version = docs.get(name)?.['dist-tags']?.[channel];
   if (typeof version !== 'string') throw new Error(`${name} has no ${channel} dist-tag`);
-  const att = await getJson(`https://registry.npmjs.org/-/npm/v1/attestations/${enc}@${version}`);
-  const problems = [...provenanceProblems(att.attestations, { name, version }), ...distTagProblems(doc['dist-tags'])];
   const dir = mkdtempSync(join(tmpdir(), 'verify-release-'));
   writeFileSync(join(dir, 'package.json'), '{"name":"verify-release","private":true}\n');
   execFileSync('npm', ['install', '--ignore-scripts', '--no-fund', '--no-audit', `${name}@${version}`], { cwd: dir, stdio: 'inherit', shell: process.platform === 'win32' });

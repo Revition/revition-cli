@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { Config } from '@oclif/core';
-import { DoctorReport, isEnvelope, runDoctor, type DoctorDeps } from '@revition/cli-core';
+import { DoctorReport, isEnvelope, RevitionCliError, runDoctor, type DoctorDeps, type SessionClient } from '@revition/cli-core';
 
 import { completionScript, SHELLS } from './completion.js';
+import { sessionTokenState } from './doctor-credential.js';
 import { suggestCommand } from './suggest.js';
 import { cliDirs } from './test-fixtures/cli-dirs.js';
 import { CLI_BIN, runCli } from './test-fixtures/spawn-cli.js';
@@ -131,5 +133,31 @@ describe('T1.1.6 help, suggestions, completion, doctor', () => {
     const anon = await runDoctor({ ...HEALTHY, tokenState: async () => 'not_logged_in' });
     assert.equal(statusOf(anon, 'credential'), 'warn');
     assert.equal(anon.summary.fail, 0);
+  });
+
+  it('[CLI-T1.1.6-AC5] the credential check probes GET /dev/me with the stored login, not only REVITION_TOKEN', async () => {
+    // Auditor #522: after a browser login (no REVITION_TOKEN) doctor said "Not logged in" while auth status said signed in.
+    const paths: string[] = [];
+    const client = (outcome: 'ok' | 'revoked' | 'down'): Pick<SessionClient, 'mode' | 'client'>['client'] =>
+      ({
+        request: async (r: { path: string }) => {
+          paths.push(r.path);
+          if (outcome === 'revoked') throw new RevitionCliError({ code: 'SESSION_REVOKED', message: 'revoked' }, 3);
+          if (outcome === 'down') throw new RevitionCliError({ code: 'NETWORK', message: 'down' }, 7);
+          return { status: 200, headers: {}, body: {} };
+        },
+      }) as unknown as SessionClient['client'];
+    assert.equal(await sessionTokenState({ mode: 'session', client: client('ok') }), 'valid');
+    assert.deepEqual(paths, ['/dev/me']);
+    assert.equal(await sessionTokenState({ mode: 'pat', client: client('ok') }), 'valid');
+    assert.equal(await sessionTokenState({ mode: 'session', client: client('revoked') }), 'invalid');
+    assert.equal(await sessionTokenState({ mode: 'session', client: client('down') }), 'unreachable');
+    assert.equal(await sessionTokenState({ mode: 'none', client: client('ok') }), 'not_logged_in');
+    assert.equal(paths.length, 4, 'signed out: no request at all');
+    // The doctor command builds that session the way every command does (stored login, else REVITION_TOKEN).
+    const src = readFileSync(join(CLI_ROOT, 'src', 'commands', 'doctor.ts'), 'utf8');
+    assert.match(src, /createSessionClient\(\{ profile, host, env: ctx\.env/);
+    assert.match(src, /return sessionTokenState\(session\)/);
+    assert.doesNotMatch(src, /ctx\.env\['REVITION_TOKEN'\]/);
   });
 });
