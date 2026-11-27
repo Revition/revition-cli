@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -67,12 +67,14 @@ describe('T2.1.4 dev --sandbox', () => {
 
   it('[CLI-T2.1.4-AC2] the loop re-runs on save, and Ctrl-C deletes the sandbox (exit 11)', async () => {
     const p = await platform();
+    let child: ChildProcess | undefined;
     try {
       const dir = await linkedProject();
       const env = { ...process.env, ...(await dirs()), NO_COLOR: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_HOST: p.host, REVITION_TOKEN: PAT };
-      const child = spawn(process.execPath, [CLI_BIN, 'dev', '--sandbox', '--run', 'hello', '--yes'], interruptible({ cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] }));
+      const proc = spawn(process.execPath, [CLI_BIN, 'dev', '--sandbox', '--run', 'hello', '--yes'], interruptible({ cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] }));
+      child = proc;
       let stderr = '';
-      child.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
+      proc.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
       const until = async (re: RegExp, ms = 15_000): Promise<void> => {
         const end = Date.now() + ms;
         while (!re.test(stderr) && Date.now() < end) await new Promise((r) => setTimeout(r, 50));
@@ -81,12 +83,66 @@ describe('T2.1.4 dev --sandbox', () => {
       await until(/saved version 4/);
       writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
       await until(/saved version 5/);
-      const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
-      pressCtrlC(child);
+      const exited = new Promise<number | null>((r) => proc.on('close', (c) => r(c)));
+      pressCtrlC(proc);
       assert.equal(await exited, 11);
       assert.equal(p.log.filter((x) => x.method === 'PUT').length, 2, 'one save per change');
       assert.equal(p.log.at(-1)?.method, 'DELETE');
     } finally {
+      // A failed assertion must never leave the watch loop running: it held the CI job open until it was cancelled
+      // (2026-11-27, ubuntu Node 22, 25 min).
+      if (child !== undefined) stopChild(child);
+      p.close();
+    }
+  });
+
+  it('[CLI-T2.1.4-AC2] a save made while the first cycle is still running is not lost (the watcher is armed first)', async () => {
+    // CI 2026-11-27 (ubuntu Node 22): the watcher was armed only after the first result printed, so a save in that
+    // window never re-ran. Deterministic here: the first run is HELD, the file is saved during it, then released.
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((r) => (release = r));
+    let runs = 0;
+    let version = 3;
+    const p = await startMockPlatform(async (method, path, body) => {
+      if (method === 'GET' && path === '/dev/projects/dproj_1') return ok({ projectId: 'dproj_1', version, files: FILES });
+      if (method === 'POST' && path === '/dev/projects/dproj_1/sandbox') return ok({ sessionId: 'dsbx_1', projectId: 'dproj_1', tier: 'dev', provider: 'mock', expiresAt: '2026-11-18T12:20:00Z', resumed: false });
+      if (method === 'PUT' && path === '/dev/projects/dproj_1/files') {
+        version += 1;
+        return ok({ projectId: 'dproj_1', version });
+      }
+      if (method === 'POST' && path === '/dev/projects/dproj_1/sandbox/run') {
+        runs += 1;
+        if (runs === 1) await held;
+        return ok({ ok: true, output: { echoed: (body as { input: unknown }).input }, logs: [], wallMs: 12 });
+      }
+      if (method === 'DELETE' && path === '/dev/projects/dproj_1/sandbox') return ok({ disposed: true });
+      return null;
+    });
+    let child: ChildProcess | undefined;
+    try {
+      const dir = await linkedProject();
+      const env = { ...process.env, ...(await dirs()), NO_COLOR: '1', REVITION_NO_UPDATE_CHECK: '1', REVITION_HOST: p.host, REVITION_TOKEN: PAT };
+      const proc = spawn(process.execPath, [CLI_BIN, 'dev', '--sandbox', '--run', 'hello', '--yes'], interruptible({ cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] }));
+      child = proc;
+      let stderr = '';
+      proc.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
+      const until = async (done: () => boolean, what: string, ms = 15_000): Promise<void> => {
+        const end = Date.now() + ms;
+        while (!done() && Date.now() < end) await new Promise((r) => setTimeout(r, 50));
+        assert.ok(done(), `${what}:\n${stderr}`);
+      };
+      await until(() => runs === 1, 'the first run started');
+      writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
+      await new Promise((r) => setTimeout(r, 1_000));
+      release();
+      await until(() => /saved version 5/.test(stderr), 'the save made during the first run re-ran');
+      const exited = new Promise<number | null>((r) => proc.on('close', (c) => r(c)));
+      pressCtrlC(proc);
+      assert.equal(await exited, 11);
+      assert.equal(p.log.filter((x) => x.method === 'PUT').length, 2, 'one save per change, run one after the other');
+    } finally {
+      release();
+      if (child !== undefined) stopChild(child);
       p.close();
     }
   });
@@ -156,11 +212,20 @@ describe('T2.1.4 dev --sandbox', () => {
       for (let i = 0; i < 100 && !re.test(err); i++) await new Promise((r) => setTimeout(r, 100));
       assert.match(err, re);
     };
-    await until(/PASS hello: echo/);
-    writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
-    await until(/--- saved \(local run 2\) ---[\s\S]*FAIL hello: echo/);
-    const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
-    pressCtrlC(child);
-    assert.equal(await exited, 11);
+    try {
+      await until(/PASS hello: echo/);
+      writeFileSync(join(dir, 'capabilities/hello/run.ts'), 'export async function run(i) { return [i]; }\n');
+      await until(/--- saved \(local run 2\) ---[\s\S]*FAIL hello: echo/);
+      const exited = new Promise<number | null>((r) => child.on('close', (c) => r(c)));
+      pressCtrlC(child);
+      assert.equal(await exited, 11);
+    } finally {
+      stopChild(child);
+    }
   });
 });
+
+/** Kill a watch-loop child that is still running (a failed assertion skipped its Ctrl-C). No-op once it has exited. */
+function stopChild(child: ChildProcess): void {
+  if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+}

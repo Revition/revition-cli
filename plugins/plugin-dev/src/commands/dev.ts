@@ -127,15 +127,7 @@ export default class Dev extends RevitionCommand<Out> {
       }
       return { projectId, session: view, cycles, disposed: !keep };
     }
-    print(ctx, await cycle());
-    await new Promise<void>(() => {
-      watchProject(dir, () => {
-        cycle().then(
-          (c) => print(ctx, c),
-          (e: unknown) => ctx.io.err(`failed ${e instanceof Error ? e.message : String(e)}\n`)
-        );
-      });
-    });
+    await watchedLoop(dir, cycle, (c) => print(ctx, c), (e) => ctx.io.err(`failed ${errorText(e)}\n`));
     return { projectId, session: view, cycles, disposed: false };
   }
 
@@ -155,17 +147,15 @@ export default class Dev extends RevitionCommand<Out> {
       cycles.push(c);
       return c;
     };
-    const first = await cycle();
-    if (f['once'] === true) return { projectId: 'local', session: null, cycles, disposed: false };
-    ctx.io.err(renderTests(first.result as Awaited<ReturnType<typeof runProjectTests>>));
-    await new Promise<void>(() => {
-      watchProject(dir, () => {
-        cycle().then(
-          (c) => ctx.io.err(`--- saved (local run ${c.version}) ---\n${renderTests(c.result as Awaited<ReturnType<typeof runProjectTests>>)}`),
-          (e: unknown) => ctx.io.err(`failed ${e instanceof Error ? e.message : String(e)}\n`)
-        );
-      });
-    });
+    if (f['once'] === true) {
+      await cycle();
+      return { projectId: 'local', session: null, cycles, disposed: false };
+    }
+    const render = (c: Cycle): void =>
+      ctx.io.err(
+        `${c.version === 1 ? '' : `--- saved (local run ${c.version}) ---\n`}${renderTests(c.result as Awaited<ReturnType<typeof runProjectTests>>)}`
+      );
+    await watchedLoop(dir, cycle, render, (e) => ctx.io.err(`failed ${errorText(e)}\n`));
     return { projectId: 'local', session: null, cycles, disposed: false };
   }
 
@@ -199,4 +189,39 @@ function summary(c: Cycle): string {
 
 function print(ctx: CommandContext, c: Cycle): void {
   ctx.io.err(summary(c));
+}
+
+function errorText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+/**
+ * T2.1.4 AC1/AC2 "re-runs on save": the watch loop, until Ctrl-C. The watcher is armed BEFORE the first cycle, so a
+ * save made the moment the first result prints is never missed (CI 2026-11-27, ubuntu Node 22: the save written right
+ * after "saved version 4" never re-ran, because the watcher was armed only after that print and Node's recursive watch
+ * arms asynchronously on Linux). Cycles run one at a time, in order: a save during a cycle re-runs after it, never
+ * beside it (two saves at once would race the project version). The first cycle's error ends the command, as before;
+ * a later cycle's error is reported and the loop keeps watching.
+ */
+async function watchedLoop(
+  dir: string,
+  cycle: () => Promise<Cycle>,
+  show: (c: Cycle) => void,
+  failed: (e: unknown) => void
+): Promise<never> {
+  const first = cycle();
+  let queue: Promise<void> = first.then(
+    () => undefined,
+    () => undefined
+  );
+  const stop = watchProject(dir, () => {
+    queue = queue.then(() => cycle().then(show, failed));
+  });
+  try {
+    show(await first);
+  } catch (e) {
+    stop();
+    throw e;
+  }
+  return new Promise<never>(() => undefined);
 }
