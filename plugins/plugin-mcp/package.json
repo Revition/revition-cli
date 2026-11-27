@@ -1,7 +1,9 @@
 {
   "name": "@revition/plugin-mcp",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Revition CLI MCP server mode: the platform operations as MCP tools over stdio, read-only by default",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,7 +15,8 @@
   },
   "files": [
     "dist",
-    "oclif.manifest.json"
+    "oclif.manifest.json",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

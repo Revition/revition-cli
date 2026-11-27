@@ -1,7 +1,9 @@
 {
   "name": "@revition/plugin-dev",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Revition CLI developer workflow: account, starters, init, link, build, test, dev, generate",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,7 +15,8 @@
   },
   "files": [
     "dist",
-    "oclif.manifest.json"
+    "oclif.manifest.json",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

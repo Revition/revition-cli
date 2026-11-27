@@ -52,8 +52,8 @@ function publishable() {
     for (const d of readdirSync(base)) {
       const pj = join(base, d, 'package.json');
       if (!existsSync(pj)) continue;
-      // Every workspace package is `private: true` until the first stable publish (a publish guard); `pack` still
-      // produces the exact artifact `publish` would upload, so all of them are packed.
+      // The CLI and every package it loads at runtime are public (publishConfig.access public); test-kit stays
+      // `private: true`. `pack` produces the exact artifact `publish` would upload, so every package is packed.
       const m = JSON.parse(readFileSync(pj, 'utf8'));
       dirs.push({ dir: join(base, d), name: m.name, version: m.version });
     }

@@ -1,7 +1,9 @@
 {
   "name": "@revition/plugin-assist",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The terminal assistant (assist): the session UX and the local tool executor under the permission policy",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,7 +15,8 @@
   },
   "files": [
     "dist",
-    "oclif.manifest.json"
+    "oclif.manifest.json",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"
