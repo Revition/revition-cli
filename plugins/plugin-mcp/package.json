@@ -6,6 +6,11 @@
   },
   "description": "Revition CLI MCP server mode: the platform operations as MCP tools over stdio, read-only by default",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revition/revition-cli",
+    "directory": "plugins/plugin-mcp"
+  },
   "type": "module",
   "exports": {
     ".": {

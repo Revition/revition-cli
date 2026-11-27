@@ -6,6 +6,11 @@
   },
   "description": "The terminal assistant (assist): the session UX and the local tool executor under the permission policy",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revition/revition-cli",
+    "directory": "plugins/plugin-assist"
+  },
   "type": "module",
   "exports": {
     ".": {

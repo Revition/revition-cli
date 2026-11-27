@@ -6,6 +6,11 @@
   },
   "description": "The Revition CLI core: command contract, config, output, errors, redaction, transport",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Revition/revition-cli",
+    "directory": "packages/core"
+  },
   "type": "module",
   "exports": {
     ".": {
