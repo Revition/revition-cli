@@ -1,9 +1,18 @@
 import { resolve } from 'node:path';
 
 import { Args, Flags } from '@oclif/core';
-import { canOpenBrowser, openBrowser, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  canOpenBrowser,
+  openBrowser,
+  PRODUCTION_WEB_LINKS,
+  RevitionCommand,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
-import { DEVELOPER_PORTAL_URL } from '../api.js';
 import { readLink } from '../project/project-link.js';
 
 import { assertOpenable } from './submissions/open.js';
@@ -15,19 +24,20 @@ import { assertOpenable } from './submissions/open.js';
 export const OPEN_TARGETS = ['app', 'project', 'sessions', 'wallet', 'docs'] as const;
 type Target = (typeof OPEN_TARGETS)[number];
 
-/** The portal page of each target (apps/web/src/app/developer/*, served from the developer host). PURE. */
-export function targetUrl(target: Target, projectId: string | null): string {
+/** The portal page of each target, on the profile's developer portal (plan amendment 2026-11-27, #537). PURE. */
+export function targetUrl(target: Target, projectId: string | null, links: WebLinks = PRODUCTION_WEB_LINKS): string {
+  const portal = links.developer;
   switch (target) {
     case 'app':
-      return `${DEVELOPER_PORTAL_URL}/apps`;
+      return `${portal}/apps`;
     case 'project':
-      return projectId === null ? `${DEVELOPER_PORTAL_URL}/ide` : `${DEVELOPER_PORTAL_URL}/ide/${encodeURIComponent(projectId)}`;
+      return projectId === null ? `${portal}/ide` : `${portal}/ide/${encodeURIComponent(projectId)}`;
     case 'sessions':
-      return `${DEVELOPER_PORTAL_URL}/cli-sessions`;
+      return `${portal}/cli-sessions`;
     case 'wallet':
-      return `${DEVELOPER_PORTAL_URL}/`;
+      return `${portal}/`;
     case 'docs':
-      return `${DEVELOPER_PORTAL_URL}/docs`;
+      return `${portal}/docs`;
   }
 }
 
@@ -56,7 +66,8 @@ export default class Open extends RevitionCommand<Out> {
   protected async run2(ctx: CommandContext): Promise<Out> {
     const target = (typeof ctx.args['target'] === 'string' ? ctx.args['target'] : 'app') as Target;
     const dir = resolve(process.cwd(), typeof ctx.commandFlags['dir'] === 'string' ? ctx.commandFlags['dir'] : '.');
-    const url = assertOpenable(targetUrl(target, readLink(dir)?.projectId ?? null));
+    const links = await webLinksOf(ctx);
+    const url = assertOpenable(targetUrl(target, readLink(dir)?.projectId ?? null, links), links);
     const opened = !ctx.flags.json && canOpenBrowser(ctx.env, process.platform) ? await openBrowser(url) : false;
     return { target, url, opened };
   }

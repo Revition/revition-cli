@@ -1,7 +1,17 @@
 import { resolve } from 'node:path';
 
 import { Flags } from '@oclif/core';
-import { EXIT, RevitionCliError, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  EXIT,
+  PRODUCTION_WEB_LINKS,
+  RevitionCliError,
+  RevitionCommand,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
 import { devApi, seg } from '../api.js';
 import { readProjectDir } from '../project/read-project.js';
@@ -56,9 +66,9 @@ export interface CodeBranchView extends ProposedBranch {
   readonly history?: readonly { readonly at: string; readonly by: string; readonly event: string }[];
 }
 
-/** The portal screen where an Owner or Admin reviews the agent's code branches (the agent editor's capabilities). */
-export function branchReviewUrl(agentId: string): string {
-  return `https://app.revition.com/foundry/agents/${encodeURIComponent(agentId)}/edit?section=apps_capabilities_plugins`;
+/** The portal screen where an Owner or Admin reviews the agent's code branches, on the profile's web app. PURE. */
+export function branchReviewUrl(agentId: string, links: WebLinks = PRODUCTION_WEB_LINKS): string {
+  return `${links.app}/foundry/agents/${encodeURIComponent(agentId)}/edit?section=apps_capabilities_plugins`;
 }
 
 /** The server's impact summary: the verdict, then each dimension that moved, then every flag. */
@@ -120,7 +130,7 @@ export default class Deploy extends RevitionCommand<Out> {
       }
       throw e;
     }
-    return { ...b, agentId, reviewUrl: branchReviewUrl(agentId) };
+    return { ...b, agentId, reviewUrl: branchReviewUrl(agentId, await webLinksOf(ctx)) };
   }
 
   protected override human(o: Out): HumanView {

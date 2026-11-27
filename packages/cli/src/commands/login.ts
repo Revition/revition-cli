@@ -26,9 +26,11 @@ import {
   RevitionCliError,
   RevitionCommand,
   SESSIONS_PAGE_URL,
+  sessionsPageUrl,
   startLoopback,
   usageError,
   verifyIdToken,
+  webLinksFor,
   type CliScope,
   type CommandContext,
   type CommandMeta,
@@ -50,6 +52,7 @@ interface Out {
   readonly note: string | null;
 }
 
+/** The production sessions page (a profile without `webOrigin`); a login prints its own profile's page. */
 export const PORTAL_SESSIONS_URL = SESSIONS_PAGE_URL;
 
 export default class Login extends RevitionCommand<Out> {
@@ -81,7 +84,9 @@ export default class Login extends RevitionCommand<Out> {
     const settings = resolveSettings({ flags: { profile: ctx.flags.profile }, env: ctx.env, project: project?.project ?? null, user: config });
     const profile = settings.profile.value;
     const host = settings.host.value;
-    if (f['with-token'] === true) return withToken(ctx, host, profile);
+    // Plan amendment 2026-11-27 (#537): the portal link is this profile's (webOrigin), not a fixed production host.
+    const portalUrl = sessionsPageUrl(webLinksFor(config.profiles[profile]?.webOrigin));
+    if (f['with-token'] === true) return withToken(ctx, host, profile, portalUrl);
     const device = f['device'] === true;
     // T1.3.1 invariant: --json login only on the non-interactive device path (--no-input + --device).
     if (ctx.flags.json && !(ctx.flags.noInput && device)) {
@@ -150,7 +155,7 @@ export default class Login extends RevitionCommand<Out> {
       sessionId: session.sessionId,
       method: device ? 'device' : 'browser',
       backend: store.backend,
-      portalUrl: PORTAL_SESSIONS_URL,
+      portalUrl,
       note: null,
     };
   }
@@ -172,7 +177,7 @@ function parseScopes(raw: unknown): readonly CliScope[] | undefined {
 }
 
 /** T1.3.6: `--with-token` reads stdin only, checks the token against the platform, and stores NOTHING. */
-async function withToken(ctx: CommandContext, host: string, profile: string): Promise<Out> {
+async function withToken(ctx: CommandContext, host: string, profile: string, portalUrl: string): Promise<Out> {
   const token = assertPatShape(await readTokenFromStdin(process.stdin));
   const client = new ApiClient({ host, token: async () => token, cliVersion: ctx.cliVersion }, { env: ctx.env });
   const me = (await client.request<{ identityRef?: string; kind?: string; linkedOrgId?: string | null }>({ method: 'GET', path: '/dev/me' })).body;
@@ -184,7 +189,7 @@ async function withToken(ctx: CommandContext, host: string, profile: string): Pr
     sessionId: null,
     method: 'token',
     backend: null,
-    portalUrl: PORTAL_SESSIONS_URL,
+    portalUrl,
     note: `The token is valid for ${String(me.identityRef ?? 'this account')} on ${host}. The CLI never stores tokens: set REVITION_TOKEN for the commands that should use it.`,
   };
 }

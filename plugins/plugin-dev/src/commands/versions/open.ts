@@ -1,5 +1,15 @@
 import { Flags } from '@oclif/core';
-import { canOpenBrowser, openBrowser, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  canOpenBrowser,
+  openBrowser,
+  PRODUCTION_WEB_LINKS,
+  RevitionCommand,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
 import { assertOpenable } from '../submissions/open.js';
 import { appOf } from '../submit.js';
@@ -13,7 +23,11 @@ export const RELEASE_ACTIONS = ['promote', 'rollback', 'advisory'] as const;
  * Deployment & Distribution page, the same page the server names when it refuses a CLI token on a release write
  * (sentinel/cli-scopes/human-only-routes.ts portalUrlFor: `/release/` -> `/foundry/distribution`).
  */
-export const RELEASE_PAGE_URL = 'https://app.revition.com/foundry/distribution';
+export function releasePageUrl(links: WebLinks): string {
+  return `${links.app}/foundry/distribution`;
+}
+/** The production page (a profile without `webOrigin`). */
+export const RELEASE_PAGE_URL = releasePageUrl(PRODUCTION_WEB_LINKS);
 
 interface Out {
   readonly appId: string;
@@ -44,7 +58,8 @@ export default class VersionsOpen extends RevitionCommand<Out> {
     const appId = appOf(ctx);
     const a = ctx.commandFlags['action'];
     const action = RELEASE_ACTIONS.find((x) => x === a) ?? null;
-    const url = assertOpenable(RELEASE_PAGE_URL);
+    const links = await webLinksOf(ctx);
+    const url = assertOpenable(releasePageUrl(links), links);
     const opened = !ctx.flags.json && canOpenBrowser(ctx.env, process.platform) ? await openBrowser(url) : false;
     return { appId, action, url, opened };
   }

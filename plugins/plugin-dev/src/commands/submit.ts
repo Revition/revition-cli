@@ -1,7 +1,17 @@
 import { resolve } from 'node:path';
 
 import { Flags } from '@oclif/core';
-import { EXIT, RevitionCliError, RevitionCommand, usageError, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  EXIT,
+  PRODUCTION_WEB_LINKS,
+  RevitionCliError,
+  RevitionCommand,
+  usageError,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
 import { devApi, seg } from '../api.js';
 import { readLink } from '../project/project-link.js';
@@ -28,8 +38,12 @@ export interface SubmissionView {
   readonly updatedAt: string;
 }
 
-/** The developer portal's apps page: where a certified version is published by a human. */
-export const PUBLISH_PAGE_URL = 'https://developer.revition.com/apps';
+/** The developer portal's apps page of a profile: where a certified version is published by a human. PURE. */
+export function publishPageUrl(links: WebLinks): string {
+  return `${links.developer}/apps`;
+}
+/** The production page (a profile without `webOrigin`). */
+export const PUBLISH_PAGE_URL = publishPageUrl(PRODUCTION_WEB_LINKS);
 
 /** The lifecycle as the CLI shows it: every state change and its reason, the check results, the review outcome. */
 export function submissionLines(s: SubmissionView): string[] {

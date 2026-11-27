@@ -1,6 +1,16 @@
-import { EXIT, RevitionCliError, RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import {
+  EXIT,
+  PRODUCTION_WEB_LINKS,
+  RevitionCliError,
+  RevitionCommand,
+  webLinksOf,
+  type CommandContext,
+  type CommandMeta,
+  type HumanView,
+  type WebLinks,
+} from '@revition/cli-core';
 
-import { devApi, DEVELOPER_PORTAL_URL } from '../../api.js';
+import { devApi } from '../../api.js';
 
 /**
  * T2.4.3 - `revition wallet`: the caller's own developer wallet (GET /dev/wallet: the subject, never a parameter).
@@ -16,14 +26,18 @@ export interface WalletView {
   readonly topUpUrl: string;
 }
 
-/** The developer portal's home, where the wallet panel and its top-up live (devportal dev-dashboard.tsx). */
-export const WALLET_PAGE_URL = `${DEVELOPER_PORTAL_URL}/`;
+/** The profile's developer portal home, where the wallet panel and its top-up live (devportal dev-dashboard.tsx). */
+export function walletPageUrl(links: WebLinks): string {
+  return `${links.developer}/`;
+}
+/** The production page (a profile without `webOrigin`). */
+export const WALLET_PAGE_URL = walletPageUrl(PRODUCTION_WEB_LINKS);
 
 /** The server's answer reduced to the wallet's own fields (an allowlist: nothing else is passed on). PURE. */
-export function walletOf(body: unknown): WalletView {
+export function walletOf(body: unknown, topUpUrl: string = WALLET_PAGE_URL): WalletView {
   const b = (body ?? {}) as Record<string, unknown>;
   const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
-  return { credits: num(b['credits']), usd: num(b['usd']), usedPct: num(b['usedPct']), open: true, topUpUrl: WALLET_PAGE_URL };
+  return { credits: num(b['credits']), usd: num(b['usd']), usedPct: num(b['usedPct']), open: true, topUpUrl };
 }
 
 export default class WalletShow extends RevitionCommand<WalletView> {
@@ -42,12 +56,13 @@ export default class WalletShow extends RevitionCommand<WalletView> {
 
   protected async run2(ctx: CommandContext): Promise<WalletView> {
     const api = await devApi(ctx);
+    const topUpUrl = walletPageUrl(await webLinksOf(ctx));
     try {
-      return walletOf((await api.request({ method: 'GET', path: '/dev/wallet' })).body);
+      return walletOf((await api.request({ method: 'GET', path: '/dev/wallet' })).body, topUpUrl);
     } catch (e) {
       // No wallet row yet: zero credits, and where to add some (edge case, plan :2455).
       if (e instanceof RevitionCliError && e.exitCode === EXIT.notFound && e.error.code === 'WALLET_NOT_OPEN') {
-        return { credits: 0, usd: 0, usedPct: 0, open: false, topUpUrl: WALLET_PAGE_URL };
+        return { credits: 0, usd: 0, usedPct: 0, open: false, topUpUrl };
       }
       throw e;
     }

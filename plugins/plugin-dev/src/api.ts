@@ -1,4 +1,4 @@
-import { RevitionCliError, runtime, type ApiClient, type CommandContext } from '@revition/cli-core';
+import { PRODUCTION_WEB_LINKS, RevitionCliError, runtime, type ApiClient, type CommandContext } from '@revition/cli-core';
 
 /**
  * The Dev API as the signed-in developer (the same session / PAT resolution as every core command). Paths are the
@@ -14,8 +14,11 @@ export async function devApi(ctx: CommandContext): Promise<ApiClient> {
 
 export const seg = (s: string): string => encodeURIComponent(s);
 
-/** The developer portal: where the developer agreement is shown and accepted on the web. */
-export const DEVELOPER_PORTAL_URL = 'https://developer.revition.com';
+/**
+ * The PRODUCTION developer portal (a profile without `webOrigin`). Commands use their profile's links instead
+ * (`webLinksOf(ctx).developer`, plan amendment 2026-11-27, #537); this stays only as the documented default.
+ */
+export const DEVELOPER_PORTAL_URL = PRODUCTION_WEB_LINKS.developer;
 
 export interface Starter {
   readonly id: string;

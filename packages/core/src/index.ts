@@ -29,6 +29,7 @@ export * from './config/host-allowlist.js';
 export * from './config/load.js';
 export * from './config/paths.js';
 export * from './config/schema.js';
+export * from './config/web-links.js';
 export * from './config/write.js';
 export * from './diagnostics/doctor.js';
 export * from './errors/cli-error.js';

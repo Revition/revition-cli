@@ -53,7 +53,7 @@ export const VERDICT: Readonly<Record<UpliftReport['verdict'], string>> = {
   regresses: 'Regresses the agent',
 };
 
-/** Where the developer reads the same run on the web. */
+/** Where the developer reads the same run on the web: the production page (a profile without `webOrigin`). */
 export const EVAL_PORTAL_URL = `${DEVELOPER_PORTAL_URL}/apps`;
 
 export function quoteText(q: EvalQuote): string {
@@ -70,7 +70,7 @@ export function quoteText(q: EvalQuote): string {
 }
 
 /** The run as the portal shows it: the headline, then each dimension without vs with the capability. */
-export function reportText(r: EvalRun): string {
+export function reportText(r: EvalRun, portalUrl: string = EVAL_PORTAL_URL): string {
   const billed = r.billedCredits === undefined ? '' : ` · Billed: ${r.billedCredits} credits`;
   const head =
     `${VERDICT[r.report.verdict]} · ${r.suiteId} · ${r.cases} cases · ` +
@@ -84,7 +84,7 @@ export function reportText(r: EvalRun): string {
       ` | delta ${delta === undefined ? '-' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}`}`
     );
   });
-  return [head, ...rows, `run ${r.runId} · ${EVAL_PORTAL_URL}`].join('\n');
+  return [head, ...rows, `run ${r.runId} · ${portalUrl}`].join('\n');
 }
 
 /**

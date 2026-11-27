@@ -30,7 +30,7 @@ export function assertNotSecret(key: string, value: string): void {
 
 /**
  * Dotted config keys: `defaultProfile`, `telemetry`, `updateCheck`, `color`,
- * `profiles.<name>.<host|org|authMethod|audience>`.
+ * `profiles.<name>.<host|org|authMethod|audience|webOrigin>`.
  * Every change is re-validated by the strict schema, so an unknown key or a bad value is refused. PURE.
  */
 export function flattenConfig(config: UserConfig): Record<string, string> {
@@ -46,6 +46,8 @@ export function flattenConfig(config: UserConfig): Record<string, string> {
     out[`profiles.${name}.authMethod`] = p.authMethod;
     // T1.2.1 (amended 2026-11-23): listed only when the profile sets its own audience (staging).
     if (p.audience !== undefined) out[`profiles.${name}.audience`] = p.audience;
+    // Plan amendment 2026-11-27 (#537): listed only when the profile sets its own web origin (staging).
+    if (p.webOrigin !== undefined) out[`profiles.${name}.webOrigin`] = p.webOrigin;
   }
   return out;
 }
@@ -66,9 +68,9 @@ function coerce(key: string, value: string): unknown {
 export function setConfigValue(config: UserConfig, key: string, value: string | undefined): UserConfig {
   if (value !== undefined) assertNotSecret(key, value);
   const next = structuredClone(config) as Record<string, unknown> & UserConfig;
-  const profileKey = /^profiles\.([A-Za-z0-9_-]+)\.(host|org|authMethod|audience)$/.exec(key);
+  const profileKey = /^profiles\.([A-Za-z0-9_-]+)\.(host|org|authMethod|audience|webOrigin)$/.exec(key);
   if (profileKey !== null) {
-    const [, name, field] = profileKey as unknown as [string, string, 'host' | 'org' | 'authMethod' | 'audience'];
+    const [, name, field] = profileKey as unknown as [string, string, 'host' | 'org' | 'authMethod' | 'audience' | 'webOrigin'];
     const profiles = next.profiles as Record<string, Record<string, unknown>>;
     const p = { ...(profiles[name] ?? {}) };
     if (value === undefined) delete p[field];

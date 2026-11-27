@@ -13,9 +13,10 @@ import {
   type CommandContext,
   type CommandMeta,
   type HumanView,
+  webLinksOf,
 } from '@revition/cli-core';
 
-import { devApi, DEVELOPER_PORTAL_URL, seg } from '../../api.js';
+import { devApi, seg } from '../../api.js';
 import { landedRun, quoteText, reportText, type EvalJob, type EvalQuote, type EvalRun } from '../../eval/report.js';
 import { readLink } from '../../project/project-link.js';
 
@@ -88,7 +89,11 @@ export default class EvalRunCommand extends RevitionCommand<Out> {
     'dry-run': Flags.boolean({ description: 'Print the quote only: free, nothing runs.' }),
   };
 
+  /** The profile's portal page for the human view of the run (plan amendment 2026-11-27, #537). */
+  private portalUrl: string | undefined;
+
   protected async run2(ctx: CommandContext): Promise<Out> {
+    this.portalUrl = `${(await webLinksOf(ctx)).developer}/apps`;
     const f = ctx.commandFlags;
     const dir = resolve(process.cwd(), typeof f['dir'] === 'string' ? f['dir'] : '.');
     const link = readLink(dir);
@@ -159,7 +164,8 @@ export default class EvalRunCommand extends RevitionCommand<Out> {
       res = await api.request({ method: 'POST', path, body: { projectId: quote.projectId, suiteId: quote.suiteId, quoteId: quote.quoteId } });
     } catch (e) {
       if (e instanceof RevitionCliError && e.exitCode === EXIT.payment) {
-        throw new RevitionCliError({ ...e.error, hint: `The evaluation is billed to your developer wallet. Add funds in the Developer Portal: ${DEVELOPER_PORTAL_URL}` }, EXIT.payment);
+        const portal = (await webLinksOf(ctx)).developer;
+        throw new RevitionCliError({ ...e.error, hint: `The evaluation is billed to your developer wallet. Add funds in the Developer Portal: ${portal}` }, EXIT.payment);
       }
       if (!isTimeout(e)) throw e;
       const runs = (await api.request<{ runs: EvalRun[] }>({ method: 'GET', path })).body.runs;
@@ -179,7 +185,7 @@ export default class EvalRunCommand extends RevitionCommand<Out> {
 
   protected override human(o: Out): HumanView {
     if (o.dryRun) return { text: `${quoteText(o.quote)}\nDry run: nothing ran or was billed.\n` };
-    return { text: `${o.run === null ? '' : reportText(o.run)}\n` };
+    return { text: `${o.run === null ? '' : reportText(o.run, this.portalUrl)}\n` };
   }
 }
 

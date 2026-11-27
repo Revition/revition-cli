@@ -97,6 +97,11 @@ describe('T1.5.2 trusted publishing, provenance, channels', () => {
       'latest points at a prerelease: 0.2.0-canary.abcdef1',
     ]);
     assert.deepEqual(distTagProblems({ latest: '0.2.0', canary: '0.3.0-canary.abcdef1' }), []);
+    // Run 45996800323: before the first stable release, `latest` is still the npm name-reservation placeholder.
+    assert.deepEqual(distTagProblems({ latest: '0.0.0-reserved', canary: '0.1.0-canary.85a95ba' }), []);
+    assert.deepEqual(distTagProblems({ latest: '0.0.0-stage', canary: '0.1.0-canary.85a95ba' }), [
+      'latest points at a prerelease: 0.0.0-stage',
+    ]);
   });
 
   it('[CLI-T1.5.2-AC3] the verification after each publish runs npm audit signatures on a fresh install of the channel', () => {

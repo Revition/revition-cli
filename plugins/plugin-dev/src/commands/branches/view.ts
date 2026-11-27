@@ -1,5 +1,5 @@
 import { Args } from '@oclif/core';
-import { RevitionCommand, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
+import { RevitionCommand, webLinksOf, type CommandContext, type CommandMeta, type HumanView } from '@revition/cli-core';
 
 import { devApi } from '../../api.js';
 import { branchReviewUrl, impactLines, type CodeBranchView } from '../deploy.js';
@@ -29,7 +29,7 @@ export default class BranchesView extends RevitionCommand<Out> {
   protected async run2(ctx: CommandContext): Promise<Out> {
     const agentId = String(ctx.commandFlags['agent']);
     const b = await findCodeBranch(await devApi(ctx), agentId, String(ctx.args['branch']));
-    return { ...b, reviewUrl: branchReviewUrl(agentId) };
+    return { ...b, reviewUrl: branchReviewUrl(agentId, await webLinksOf(ctx)) };
   }
 
   protected override human(b: Out): HumanView {
