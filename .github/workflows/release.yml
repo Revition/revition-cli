@@ -47,7 +47,7 @@ jobs:
           pnpm check:licenses
           pnpm check:size
           pnpm audit --prod --audit-level high
-      - uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+      - uses: google/osv-scanner-action/osv-scanner-action@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
         with:
           scan-args: |-
             --lockfile=pnpm-lock.yaml
@@ -59,7 +59,7 @@ jobs:
       # sbom-action writes output-file but does not create its directory (run 45608277637: ENOENT).
       - run: mkdir -p release-artifacts
       - name: SBOM (CycloneDX)
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        uses: anchore/sbom-action@dfcb83b97731532d72be422cbc51ee64adb6fd56 # v0.24.4
         with:
           path: .
           format: cyclonedx-json
@@ -123,7 +123,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - id: changesets
         # v1: the repository runs @changesets/cli 2.x; action v2 refuses CLI v2 (run 45608277637).
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           version: pnpm version-packages
           title: Version Packages
@@ -193,7 +193,7 @@ jobs:
           pnpm check:licenses
           pnpm check:size
           pnpm audit --prod --audit-level high
-      - uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+      - uses: google/osv-scanner-action/osv-scanner-action@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
         with:
           scan-args: |-
             --lockfile=pnpm-lock.yaml
@@ -206,7 +206,7 @@ jobs:
           echo "channel=$(node scripts/release.mjs channel "$v" "$REQUESTED")" >> "$GITHUB_OUTPUT"
       # sbom-action writes output-file but does not create its directory (run 45608277637: ENOENT).
       - run: mkdir -p release-artifacts
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+      - uses: anchore/sbom-action@dfcb83b97731532d72be422cbc51ee64adb6fd56 # v0.24.4
         with:
           path: .
           format: cyclonedx-json
@@ -283,7 +283,7 @@ jobs:
             npm publish "./release-artifacts/$f" --tag "$CHANNEL" --access public
           done
       - run: node scripts/verify-release.mjs @revition/cli "$CHANNEL" --manifest release-artifacts/manifest.json
-      - uses: chainguard-dev/actions/setup-gitsign@f133c9e8aae4b7e9031c254d34cacb2fa8f83c31 # v1.7.3
+      - uses: chainguard-dev/actions/setup-gitsign@2993c8809dbe6a42dd25a9029084911611d971d2 # v1.8.3
       - name: Signed tag (sigstore) + GitHub Release with notes, SBOM and provenance links
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
