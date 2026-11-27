@@ -1,0 +1,55 @@
+# REVITION-CLI-PLAN T2.5.2 AC3 ("The UX checklist is passed"; UA10 "a first-time user walks the UX checklist on this
+# Mac (Windows / Linux by the matrix)"; auditor ruling #580 (a)): the UX checklist in HUMAN mode (no --json) on Linux and
+# Windows, every rendered output saved as an artifact for the review (docs/security/review-phase2.md "UX checklist").
+# $0: no paid route is called. Manual dispatch only. The token is a repo secret the user minted for this run
+# (cli:read, cli:write, 1 day); `init` registers one dev project on the given test app (apps have no delete route).
+name: UX checklist, human mode (Linux + Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: The test developer's test app id `init` links to.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ux:
+    name: UX checklist (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - name: UX checklist, human mode, against staging
+        shell: bash
+        env:
+          REVITION_HOST: api.revition.com
+          UX_TOKEN: ${{ secrets.REVITION_E2E_UX_TOKEN }}
+          UX_APP: ${{ inputs.app }}
+          UX_OUT: ${{ github.workspace }}/ux-out
+          CLI_ROOT: ${{ github.workspace }}
+          REVITION_NO_UPDATE_CHECK: '1'
+          DO_NOT_TRACK: '1'
+        run: bash e2e/ux-checklist.sh
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ux-human-mode-${{ matrix.os }}
+          path: ux-out
