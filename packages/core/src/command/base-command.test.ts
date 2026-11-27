@@ -5,7 +5,7 @@ import { RevitionCliError } from '../errors/cli-error.js';
 import { isEnvelope } from '../output/envelope.js';
 import { memoryIo } from '../output/io.js';
 
-import { executeCommand, type PipelineInput } from './base-command.js';
+import { executeCommand, readlineTerminal, settledLine, usageMessageOf, type PipelineInput } from './base-command.js';
 import type { BaseFlagValues, CoreServices } from './context.js';
 import type { CommandMeta } from './contract.js';
 
@@ -144,5 +144,54 @@ describe('T1.1.1 the base command pipeline', () => {
     const out = boom.io.stdout();
     assert.match(out, /Something went wrong \(trace /);
     assert.doesNotMatch(out, /rvt_/);
+  });
+});
+
+describe('[CLI-T2.5.2-AC3] UX checklist findings from the macOS walk (auditor #590)', () => {
+  it('[CLI-T2.5.2-AC3] a visible prompt never puts readline in terminal mode (its redraw erased the question)', () => {
+    // Terminal mode redraws an empty prompt at column 1 and clears the screen below: `init` waited on an invisible ask.
+    assert.equal(readlineTerminal(false, true), false);
+    assert.equal(readlineTerminal(false, false), false);
+    // A hidden read still needs terminal mode to stop the echo; its own output (the redraw included) is suppressed.
+    assert.equal(readlineTerminal(true, true), true);
+    assert.equal(readlineTerminal(true, false), false);
+  });
+
+  it('[CLI-T2.5.2-AC3] a prompt read settles on end of input with the default answer (no unsettled await, exit 13)', async () => {
+    const fake = (): {
+      rl: Parameters<typeof settledLine>[0];
+      answer: (a: string) => void;
+      end: () => void;
+    } => {
+      let onAnswer: (a: string) => void = () => undefined;
+      let onClose: () => void = () => undefined;
+      const rl = {
+        question: (_q: string, cb: (a: string) => void): void => {
+          onAnswer = cb;
+        },
+        once: (_e: 'close', cb: () => void): unknown => {
+          onClose = cb;
+          return rl;
+        },
+        close: (): void => onClose(),
+      };
+      return { rl, answer: (a) => onAnswer(a), end: () => onClose() };
+    };
+    const eof = fake();
+    const pendingEof = settledLine(eof.rl);
+    eof.end();
+    assert.equal(await pendingEof, '');
+    const typed = fake();
+    const pendingTyped = settledLine(typed.rl);
+    typed.answer('y');
+    assert.equal(await pendingTyped, 'y');
+  });
+
+  it('[CLI-T2.5.2-AC3] a usage error names what is missing (the whole message on one line, not its first line)', () => {
+    const oclif = new Error('Missing 1 required arg:\nkind  sdk or ui.\nSee more help with --help');
+    assert.equal(usageMessageOf(oclif), 'Missing 1 required arg: kind  sdk or ui.');
+    assert.equal(usageMessageOf(new Error('Unexpected argument: x')), 'Unexpected argument: x');
+    assert.equal(usageMessageOf('not an error'), 'Invalid usage.');
+    assert.ok(usageMessageOf(new Error('a'.repeat(500))).length <= 300);
   });
 });

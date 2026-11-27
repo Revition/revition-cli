@@ -20,6 +20,17 @@ import {
 } from '@revition/cli-core';
 
 import { pushBackup, writeProjectFile } from './backup.js';
+
+/**
+ * CLI-T3.4.1 AC1 (user Assist re-run as_de5356ef, auditor #595): `run_tests` with no command ran `npm test`, but a
+ * Revition project (`revition init`: revition.json + capabilities/) has no package.json, so it always failed and the
+ * model concluded "no package.json in the project root". A Revition project's tests are `revition test` (offline, the
+ * project's own tests.json); a package.json keeps `npm test`. The model may still name any command (asked first).
+ */
+export function defaultTestCommand(root: string): string {
+  if (existsSync(join(root, 'package.json'))) return 'npm test';
+  return existsSync(join(root, 'revition.json')) ? 'revition test' : 'npm test';
+}
 import { applyUnifiedPatch, StalePatch, unifiedDiff } from './diff.js';
 
 /**
@@ -104,7 +115,7 @@ export class LocalExecutor {
         return this.write(str(args, 'path', true) ?? '', reason, (before) => applyUnifiedPatch(before ?? '', patch), 'apply_patch');
       }
       case 'run_tests':
-        return this.exec(str(args, 'command', false) ?? 'npm test', reason, 'run_tests');
+        return this.exec(str(args, 'command', false) ?? defaultTestCommand(this.deps.policy.root), reason, 'run_tests');
       case 'run_command':
         return this.exec(str(args, 'command', true) ?? '', reason, 'run_command');
     }
