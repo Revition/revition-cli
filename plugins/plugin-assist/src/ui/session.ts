@@ -63,6 +63,20 @@ export function projectSummary(policy: PermissionPolicy): string {
   return `project root entries: ${names.join(', ')}`;
 }
 
+/**
+ * CLI-T3.4.1 AC1 (as_de5356ef, auditor #595): a refused step says why; a command that RAN and failed says its exit code
+ * and the last line it printed, never the bare "not done" the developer could not act on. PURE.
+ */
+export function notDoneReason(res: ToolResult): string {
+  if (res.error !== undefined) return res.error;
+  const r = res.output as { readonly exitCode?: unknown; readonly output?: unknown; readonly timedOut?: unknown } | undefined;
+  if (r === undefined || typeof r !== 'object' || !('exitCode' in r)) return 'not done';
+  if (r.timedOut === true) return 'the command timed out';
+  const last = typeof r.output === 'string' ? (r.output.trim().split('\n').pop() ?? '').slice(0, 160) : '';
+  const code = r.exitCode === null ? 'it could not start' : `exit ${String(r.exitCode)}`;
+  return last === '' ? `the command failed (${code})` : `the command failed (${code}): ${last}`;
+}
+
 export class AssistRun {
   private lastDiff: string | null = null;
   private spend: { spentCredits: number; budgetCredits: number } | null = null;
@@ -180,7 +194,7 @@ export class AssistRun {
           if (d.stop.requested) break;
           const res = await this.executor.handle({ tool: r.tool, args: r.args, reason: r.reason });
           this.actions.push({ tool: res.tool, ok: res.ok, ...(res.error === undefined ? {} : { error: res.error }) });
-          if (!res.ok) this.say({ out: '', err: `  -> ${res.error ?? 'not done'}\n` });
+          if (!res.ok) this.say({ out: '', err: `  -> ${notDoneReason(res)}\n` });
           results.push(res);
         }
         if (d.stop.requested) break;
