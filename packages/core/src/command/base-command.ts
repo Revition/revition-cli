@@ -244,7 +244,7 @@ export abstract class RevitionCommand<T> extends Command {
         json,
         data: null,
         human: null,
-        error: usageError('INVALID_USAGE', e instanceof Error ? e.message.split('\n')[0] ?? 'Invalid usage.' : 'Invalid usage.', `Run \`revition ${ctor.meta.id.replace(/:/g, ' ')} --help\`.`).error,
+        error: usageError('INVALID_USAGE', usageMessageOf(e), `Run \`revition ${ctor.meta.id.replace(/:/g, ' ')} --help\`.`).error,
         warnings: [],
         cliVersion: this.config.version,
         color: useColor({ flag: undefined, env: process.env, isTTY: io.stdoutIsTTY }),
@@ -288,17 +288,67 @@ export abstract class RevitionCommand<T> extends Command {
   }
 }
 
+/**
+ * T2.5.2 AC3 (macOS UX walk, auditor #590): readline in terminal mode redraws its own (empty) prompt at column 1 and
+ * clears to the end of the screen (ESC[1G ESC[0J), which ERASED the question `ask` had just written, so `init` without
+ * --yes waited on a confirmation the person never saw. Terminal mode is only needed to hide a secret's echo, and a
+ * hidden read suppresses that redraw with the rest of its output; a visible read uses the terminal's own line input.
+ * PURE.
+ */
+export function readlineTerminal(hidden: boolean, stdinIsTTY: boolean): boolean {
+  return hidden && stdinIsTTY;
+}
+
+/**
+ * T2.5.2 AC3 (auditor #590): the whole usage message, on one line. The first line alone dropped what was missing
+ * ("Missing 1 required arg:" without naming `kind`). oclif's trailing "See more help with --help" is left out: the hint
+ * says it. PURE.
+ */
+export function usageMessageOf(e: unknown): string {
+  if (!(e instanceof Error)) return 'Invalid usage.';
+  const text = e.message
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l !== '' && !/^see more help with/i.test(l))
+    .join(' ');
+  return text === '' ? 'Invalid usage.' : text.slice(0, 300);
+}
+
 /** One line from stdin (prompts). Echo is turned off for a hidden read on a TTY. */
 async function readLineFromStdin(opts: { readonly hidden: boolean }): Promise<string> {
   const { createInterface } = await import('node:readline');
-  const rl = createInterface({ input: process.stdin, output: process.stderr, terminal: process.stdin.isTTY === true });
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stderr,
+    terminal: readlineTerminal(opts.hidden, process.stdin.isTTY === true),
+  });
   if (opts.hidden) {
     (rl as unknown as { _writeToOutput: (s: string) => void })._writeToOutput = () => undefined;
   }
+  return settledLine(rl);
+}
+
+/**
+ * The answer, or '' (the default, No) when input ends first (Ctrl-D, a closed terminal). Before, only the answer
+ * settled it, so end of input left the await unsettled and the CLI exited 13 with nothing said (macOS walk, #590/#591),
+ * as `telemetry-flags.ts` firstRunConsent already guards. Exported for its test.
+ */
+export function settledLine(rl: {
+  question: (q: string, cb: (answer: string) => void) => void;
+  once: (event: 'close', cb: () => void) => unknown;
+  close: () => void;
+}): Promise<string> {
   return new Promise((resolve) => {
-    rl.question('', (answer) => {
-      rl.close();
+    let done = false;
+    const settle = (answer: string): void => {
+      if (done) return;
+      done = true;
       resolve(answer);
+    };
+    rl.once('close', () => settle(''));
+    rl.question('', (answer) => {
+      settle(answer);
+      rl.close();
     });
   });
 }

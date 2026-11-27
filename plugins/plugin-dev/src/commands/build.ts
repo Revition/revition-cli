@@ -95,7 +95,7 @@ export default class Build extends RevitionCommand<BuildOut> {
     for (const w of o.warnings) lines.push(`warning ${w.file}: ${w.message}`);
     for (const p of o.problems) lines.push(`problem ${p.file}: ${p.message}`);
     if (o.mode === 'local-only') lines.push('local checks only');
-    lines.push(o.ok ? 'ok: the project passes the build’s checks' : 'the project has problems');
+    lines.push(o.ok ? 'ok: the project passes the build\'s checks' : 'the project has problems');
     return { text: `${lines.join('\n')}\n` };
   }
 }

@@ -148,4 +148,22 @@ describe('T1.1.3 output and UX', () => {
     assert.deepEqual(hardCoded, []);
     assert.deepEqual(tables.filter((f) => !readFileSync(f, 'utf8').includes('terminalTable()')), []);
   });
+
+  it('[CLI-T2.5.2-AC3] no command prints typographic quotes (macOS walk: "build’s" in accessible and piped output)', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const root = fileURLToPath(new URL('../../../..', import.meta.url));
+    const walk = (d: string): string[] =>
+      readdirSync(d).flatMap((n) => {
+        const p = join(d, n);
+        if (n === 'node_modules' || n === 'dist' || n === 'testdata' || n.endsWith('.test.ts')) return [];
+        return statSync(p).isDirectory() ? walk(p) : p.endsWith('.ts') ? [p] : [];
+      });
+    const files = [join(root, 'packages'), join(root, 'plugins')].flatMap(walk);
+    assert.ok(files.length >= 50, `source files: ${files.length}`);
+    // A legacy console and a screen reader read U+2018/2019/201C/201D badly; output strings stay ASCII quotes.
+    const curly = files.filter((f) => /[‘’“”]/u.test(readFileSync(f, 'utf8')));
+    assert.deepEqual(curly, []);
+  });
 });
